@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  django:
+    container_name: django_server
+    build:
+      context: ./django-server
+      dockerfile: Dockerfile
+    restart: always
+    command: python /app/manage.py runserver 127.0.0.1:8000
+    volumes:
+      - ./django-server:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./django-server/.env.local
+    environment:
+      - DATABASE_URL=postgres://postgres:6QrRsCKKkgmGFMka@212.80.20.179:31321/db
+      - REDIS_URL=redis://:Q2o8d6NxjC35R8fA@212.80.20.179:31752/0
+    networks:
+      - app-network
+
+  go:
+    container_name: go_server
+    build:
+      context: ./golang-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - django
+    environment:
+      - DJANGO_API_URL=http://django_server:8000 
+      - REDIS_URL=redis://:Q2o8d6NxjC35R8fA@212.80.20.179:31752/0
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
