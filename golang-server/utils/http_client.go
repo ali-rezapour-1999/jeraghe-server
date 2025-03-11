@@ -5,53 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-server/config"
-	"go-server/middleware"
 	"io"
 	"net/http"
 	"time"
 )
 
-var cacheDuration = 60 * time.Minute
-
 var protectedEndpoints = map[string]bool{
 	"profile": true,
 }
+var cacheDuration = 60 * time.Hour
 
-func FetchFromDjango(app string, endpoint string, token string, id string) (json.RawMessage, error) {
+func FetchFromDjango(app string, endpoint string, token string) (json.RawMessage, error) {
 	cacheKey := "::" + endpoint
 	requiresAuth := protectedEndpoints[app]
 
-	if requiresAuth {
-		if token == "" {
-			fmt.Println("Error token not founded")
-		}
-		valid, err := middleware.CheckTokenCache(token, id)
-		if err != nil {
-			fmt.Println("Error checking token in cache:", err)
-		}
-		if valid {
-			val, err := config.RedisClient.Get(context.Background(), cacheKey).Result()
-			if err == nil {
-				fmt.Println("Data from Redis Cache")
-				return json.RawMessage(val), nil
-			}
-		}
-		if !valid {
-			veryfy, err := middleware.VerifyToken(token)
-			if err != nil {
-				fmt.Println("Error verifying token with Django:", err)
-				return nil, err
-			}
-			if !veryfy {
-				return nil, fmt.Errorf("unauthorized: invalid token")
-			}
-			middleware.StoreTokenCache(token, id)
-		}
-	}
-
 	val, err := config.RedisClient.Get(context.Background(), cacheKey).Result()
 	if err == nil {
-		fmt.Println("Data from Redis Cache")
 		return json.RawMessage(val), nil
 	}
 
@@ -73,17 +42,18 @@ func FetchFromDjango(app string, endpoint string, token string, id string) (json
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response from Django:", err)
-		return nil, err
-	}
+	if resp.StatusCode == 200 {
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response from Django:", err)
+			return nil, err
+		}
 
-	err = config.RedisClient.Set(context.Background(), cacheKey, data, cacheDuration).Err()
-	if err != nil {
-		fmt.Println("Error caching data in Redis:", err)
+		err = config.RedisClient.Set(context.Background(), cacheKey, data, cacheDuration).Err()
+		if err != nil {
+			fmt.Println("Error caching data in Redis:", err)
+		}
+		return json.RawMessage(data), nil
 	}
-
-	fmt.Println("Successfully fetched data from Django")
-	return json.RawMessage(data), nil
+	return nil, err
 }

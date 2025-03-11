@@ -1,4 +1,5 @@
 from rest_framework import permissions, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.cache import cache
 from log.models import RestLog
@@ -15,7 +16,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.select_related("user").filter(is_active=True)
     lookup_field = "user__slug_id"
     serializer_class = ProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def perform_update(self, serializer):
         profile = serializer.save()
@@ -29,10 +30,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
 
 class WorkHistoryViewSet(viewsets.ModelViewSet):
-    queryset = WorkHistory.objects.select_related("user").filter(is_active=True)
     serializer_class = WorkHistorySerializer
     lookup_field = "user__slug_id"
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return WorkHistory.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -87,7 +90,7 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         social_media = serializer.save(user=self.request.user)
-        cache.delete(f"social_media_{self.request.user.id}")
+        cache.delete("social-media")
         RestLog.objects.create(
             user=self.request.user,
             action="SocialMedia Created",
@@ -97,7 +100,7 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         social_media = serializer.save()
-        cache.delete(f"social_media_{self.request.user.id}")
+        cache.delete("social-media")
         RestLog.objects.create(
             user=self.request.user,
             action="SocialMedia Updated",
@@ -107,7 +110,7 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         instance.delete()
-        cache.delete(f"social_media_{self.request.user.id}")
+        cache.delete("social-media")
         RestLog.objects.create(
             user=self.request.user,
             action="SocialMedia Deleted",
@@ -117,10 +120,12 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
 
 
 class UserSkillViewSet(viewsets.ModelViewSet):
-    queryset = UserSkill.objects.select_related("user").filter(is_active=True)
     serializer_class = UserSkillSerializer
     lookup_field = "user__slug_id"
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SocialMedia.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()

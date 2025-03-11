@@ -23,13 +23,21 @@ class UserSkillSerializer(serializers.ModelSerializer):
 class WorkHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkHistory
-        fields = "__all__"
+        fields = [
+            "user",
+            "job_title",
+            "company_name",
+            "start_date",
+            "end_date",
+            "job_description",
+            "is_working",
+        ]
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = "__all__"
         model = Profile
+        fields = "__all__"
 
     def get_email(self, obj):
         return obj.user.email if obj.user else None
