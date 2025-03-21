@@ -20,6 +20,8 @@ func main() {
 	fmt.Println("Redis is up and running!")
 
 	routes.ProfileUserRoutes(app)
+	routes.PostRoutes(app)
+	routes.BaseRoutes(app)
 
 	app.Use(middleware.ErrorHandler)
 	app.Use(cors.New())

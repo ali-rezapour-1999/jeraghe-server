@@ -1,40 +1,32 @@
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, response, status, generics
 from .models import Post
 from .serializers import PostSerializers
 
 
-class PostViewSet(viewsets.ModelViewSet):
+class CreatePostView(generics.CreateAPIView):
     serializer_class = PostSerializers
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        return Post.objects.filter(status="published", is_active=True)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            validated_data = serializer.validated_data
+            tags_data = validated_data.pop("tags", [])
 
-    def perform_create(self, serializer):
-        try:
-            post = serializer.save()
-            self.log_action("Post Created", post)
-        except Exception as e:
-            self.log_error("Post creation failed", e)
-            raise e
+            post = serializer.save(user=self.request.user)
 
-    def perform_update(self, serializer):
-        try:
-            post = serializer.save()
-            self.log_action("Post Updated", post)
-        except Exception as e:
-            self.log_error("Post update failed", e)
-            raise e
-
-    def perform_destroy(self, instance):
-        try:
-            instance.delete()
-            self.log_action("Post Deleted", None)
-        except Exception as e:
-            self.log_error("Post deletion failed", e)
-            raise e
-
-
-class UserPostViewSet(viewsets.ModelViewSet):
-    def get_queryset(self):
-        return Post.objects.filter(user=self.request.user)
+            for tag_data in tags_data:
+                if "title" in tag_data and tag_data["title"]:
+                    try:
+                        tag = Tags.objects.get(title=tag_data["title"])
+                    except Tags.DoesNotExist:
+                        tag = Tags.objects.create(title=tag_data["title"])
+                    post.tags.add(tag)
+            return response.Response(
+                {"message": "پست با موفقیت ساخته شد", "data": serializer.data},
+                status=status.HTTP_201_CREATED,
+            )
+        return response.Response(
+            {"message": "ایجاد پست با خطا مواجه شد", "error": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )

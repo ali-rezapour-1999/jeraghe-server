@@ -21,6 +21,7 @@ func GetProfile(c *fiber.Ctx) error {
 			fmt.Println("Error fetching from Django => profile", err)
 			return fiber.NewError(fiber.ErrBadRequest.Code, "Error fetching users")
 		}
+		fmt.Println("get Profile info")
 		return c.JSON(data)
 	}
 	return fiber.NewError(fiber.StatusUnauthorized, "Error : you need Authorization")
@@ -37,6 +38,7 @@ func GetSocialMedia(c *fiber.Ctx) error {
 			fmt.Println("Error fetching from Django => social-media:", err)
 			return fiber.NewError(fiber.ErrBadRequest.Code, "Error fetching users")
 		}
+		fmt.Println("get Profile social-media")
 		return c.JSON(data)
 	}
 	return fiber.NewError(fiber.StatusUnauthorized, "Error : you need Authorization")

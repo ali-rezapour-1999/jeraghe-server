@@ -7,14 +7,14 @@ from base.models import BaseModel
 
 class Profile(BaseModel):
     user = models.OneToOneField(
-        CustomUser, on_delete=models.CASCADE, related_name="profile"
+        CustomUser, on_delete=models.CASCADE, related_name="profil_user"
     )
     gender = models.CharField(max_length=12, blank=True, null=True)
     age = models.PositiveIntegerField(blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
-    description_myself = models.TextField(blank=True, null=True)
+    desciption = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username}"
@@ -70,7 +70,7 @@ class UserSkill(BaseModel):
 
 class SocialMedia(BaseModel):
     user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="socialMedia"
+        CustomUser, on_delete=models.CASCADE, related_name="socila_media"
     )
     address = models.URLField(null=True, blank=True, unique=True)
     title = models.CharField(max_length=255, null=False, blank=False)

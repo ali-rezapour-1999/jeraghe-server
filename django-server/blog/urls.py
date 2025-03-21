@@ -1,11 +1,5 @@
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
-from .views import PostViewSet, UserPostViewSet
+from django.urls import path
+from .views import CreatePostView
 
-router = DefaultRouter()
-router.register("view-post", PostViewSet, basename="post")
-router.register("user-post", UserPostViewSet, basename="user-post")
 
-urlpatterns = [
-    path("", include(router.urls)),
-]
+urlpatterns = [path("create/", CreatePostView.as_view(), name="create-post")]

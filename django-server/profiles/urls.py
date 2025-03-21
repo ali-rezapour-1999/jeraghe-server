@@ -8,7 +8,7 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r"profile-info", ProfileViewSet, basename="profiles")
+router.register(r"profile-info", ProfileViewSet, basename="profile-info")
 router.register(r"work-history", WorkHistoryViewSet, basename="work-history")
 router.register(r"social-media", SocialMediaViewSet, basename="social-media")
 router.register(r"user-skills", UserSkillViewSet, basename="user-skills")
