@@ -18,7 +18,6 @@ func VerifyToken(token string) (bool, error) {
 	}
 
 	djangoAuthURL := "http://localhost:8000/api/auth/token-verify/"
-
 	payload := map[string]string{"token": token}
 	jsonData, _ := json.Marshal(payload)
 
@@ -41,31 +40,40 @@ func VerifyToken(token string) (bool, error) {
 	return false, nil
 }
 
-func CheckTokenCache(token string, keyId string) (bool, error) {
+func CheckTokenCache(token string) (bool, error) {
 	if token == "" {
 		return false, fmt.Errorf("missing token")
 	}
-
-	value, err := config.RedisClient.Get(context.Background(), keyId).Result()
+	exists, err := config.RedisClient.Exists(context.Background(), token).Result()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error checking token in Redis: %v", err)
 	}
-	if value != token {
-		return false, nil
-	}
-	return true, nil
+	return exists > 0, nil
 }
 
-func StoreTokenCache(token string, id string) error {
+func StoreTokenCache(token string) error {
 	if token == "" {
 		return fmt.Errorf("cannot store empty token")
 	}
-
-	err := config.RedisClient.Set(context.Background(), id, token, tokenCacheDuration).Err()
+	err := config.RedisClient.Set(context.Background(), token, true, tokenCacheDuration).Err()
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("Token cached successfully in Redis")
 	return nil
+}
+
+func IsAuthontication(token string) (bool, error) {
+	if token == "" {
+		return false, fmt.Errorf("token required")
+	}
+	verify, err := CheckTokenCache(token)
+	if verify && err == nil {
+		return true, nil
+	}
+	newToken, err := VerifyToken(token)
+	if newToken && err == nil {
+		StoreTokenCache(token)
+		return true, nil
+	}
+	return false, fmt.Errorf("unauthorized: Invalid Token")
 }

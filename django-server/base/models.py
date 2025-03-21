@@ -36,7 +36,7 @@ class BaseModel(models.Model):
 
 
 class Tags(BaseModel):
-    title = models.CharField(max_length=100, unique=True)
+    title = models.CharField(max_length=100)
 
     class Meta:
         verbose_name = "تگ"
