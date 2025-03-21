@@ -122,14 +122,14 @@ class UpdateUserInformationView(generics.UpdateAPIView):
         )
 
 
-class GetUserInformationView(generics.UpdateAPIView):
+class GetUserInformationView(generics.RetrieveAPIView):
     serializer_class = UserInformationSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "get"
 
     def get_object(self):
-        return CustomUser.objects.get(pk=self.request.user.pk, is_active=True)
+        return User.objects.get(pk=self.request.user.pk, is_active=True)
 
     def get(self, request):
         instance = self.get_object()
