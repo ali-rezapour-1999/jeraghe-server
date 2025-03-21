@@ -6,6 +6,7 @@ from .views import (
     GetUserInformationView,
     UpdateUserInformationView,
 )
+from . import views
 
 
 urlpatterns = [
@@ -15,4 +16,6 @@ urlpatterns = [
     path("login/", UserLoginView.as_view(), name="user-login"),
     path("token-refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("token-verify/", TokenVerifyView.as_view(), name="token-verify"),
+    path("reset-password/", views.password_reset_request, name="password_reset"),
+    path("reset-password/<uidb64>/<token>/", views.password_reset_confirm, name="password_reset_confirm"),
 ]

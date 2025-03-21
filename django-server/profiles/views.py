@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets, status, mixins, throttling
+from rest_framework import permissions, viewsets, status, generics, throttling
 from rest_framework.response import Response
 from django.core.cache import cache
 from .models import Profile, WorkHistory, SocialMedia, UserSkill
@@ -10,19 +10,16 @@ from .serializers import (
 )
 
 
-class ProfileViewSet(
-    viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
-):
+class ProfileUpdateView(generics.UpdateAPIView):
     serializer_class = ProfileSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "update"
 
-    def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
-
     def update(self, request, *args, **kwargs):
         queryset = self.get_queryset().first()
+        token = request.META.get("HTTP_AUTHORIZATION", "").split(" ")[1]
+
         if not queryset:
             return Response(
                 {"message": "پروفایل یافت نشد."}, status=status.HTTP_404_NOT_FOUND
@@ -31,8 +28,8 @@ class ProfileViewSet(
         serializer = self.get_serializer(queryset, data=request.data, partial=True)
 
         if serializer.is_valid():
-            profile = serializer.save()
-            cache.delete(f"profile-info/{profile.user.slug_id}")
+            serializer.save()
+            cache.delete(f"profile/get/{token}")
             return Response(
                 {"message": "تغییرات با موفقیت اعمال شد", "data": serializer.data},
                 status=status.HTTP_200_OK,
@@ -40,6 +37,32 @@ class ProfileViewSet(
 
         return Response(
             {"message": "خطا در اعمال تغییرات", "error": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class ProfileGetView(generics.RetrieveAPIView):
+    serializer_class = ProfileSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "get"
+
+    def get_object(self):
+        return Profile.objects.get(user=self.request.user)
+
+    def get(self, request):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"data": serializer.data},
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            {
+                "data": serializer.errors,
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 

@@ -5,6 +5,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from user.models import CustomUser
 from base.utils import generate_unique_id
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import get_user_model
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.auth.forms import SetPasswordForm, PasswordResetForm
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.contrib.sites.shortcuts import get_current_site
+from .tasks import send_reset_email
 
 from .serializers import (
     UserInformationSerializer,
@@ -146,4 +154,57 @@ class GetUserInformationView(generics.RetrieveAPIView):
                 "data": serializer.errors,
             },
             status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+def password_reset_request(request):
+    if request.method == "POST":
+        form = PasswordResetForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            associated_users = User.objects.filter(email=email)
+            if associated_users.exists():
+                for user in associated_users:
+                    # ایجاد لینک ریست رمز عبور
+                    token = default_token_generator.make_token(user)
+                    uid = urlsafe_base64_encode(str(user.pk).encode())
+                    domain = get_current_site(request).domain
+                    link = f"http://{domain}/reset-password/{uid}/{token}/"
+
+                    send_reset_email.delay(email, link)
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "لینک ریست رمز عبور به ایمیل شما ارسال شد.",
+                }
+            )
+
+    else:
+        form = PasswordResetForm()
+
+    return render(request, "password_reset_form.html", {"form": form})
+
+
+def password_reset_confirm(request, uidb64, token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = get_user_model().objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        if request.method == "POST":
+            form = SetPasswordForm(user, request.POST)
+            if form.is_valid():
+                form.save()
+                return JsonResponse(
+                    {"status": "success", "redirect_url": "/password-reset-complete"}
+                )
+        else:
+            form = SetPasswordForm(user)
+        return render(request, "password_reset_confirm.html", {"form": form})
+    else:
+        return JsonResponse(
+            {"status": "error", "redirect_url": "/password-reset-invalid"}
         )
