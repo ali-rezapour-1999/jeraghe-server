@@ -6,8 +6,14 @@ import (
 	"go-server/middleware"
 	"go-server/routes"
 	"log"
+	"os"
+	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/csrf"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/gofiber/fiber/v2/utils"
 )
 
 func main() {
@@ -19,16 +25,41 @@ func main() {
 	}
 	fmt.Println("Redis is up and running!")
 
+	// router
 	routes.ProfileUserRoutes(app)
 	routes.PostRoutes(app)
 	routes.BaseRoutes(app)
 
-	app.Use(middleware.ErrorHandler)
-	app.Use(cors.New())
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:8000, http://localhost:3000 , http://127.0.0.1:8000 , http://127.0.0.1:3000",
-		AllowHeaders: "Authorization ,Origin, Content-Type, Accept",
+	app.Use(limiter.New())
+	app.Use(limiter.New(limiter.Config{
+		Max:        25,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusTooManyRequests)
+		},
+		SkipFailedRequests:     false,
+		SkipSuccessfulRequests: true,
 	}))
+
+	app.Use(csrf.New(csrf.Config{
+		KeyLookup:      "header:X-Csrf-Token",
+		CookieName:     "csrf_",
+		CookieSameSite: "Lax",
+		Expiration:     1 * time.Hour,
+		KeyGenerator:   utils.UUIDv4,
+	}))
+
+	allowOrigins := os.Getenv("CORS_ALLOW_ORIGINS")
+	allowHeaders := os.Getenv("CORS_ALLOW_HEADERS")
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: allowOrigins,
+		AllowHeaders: allowHeaders,
+	}))
+
+	app.Use(middleware.ErrorHandler)
 
 	port := ":8080"
 	fmt.Println("Server is running on port", port)

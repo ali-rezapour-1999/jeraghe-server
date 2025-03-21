@@ -10,7 +10,7 @@ import (
 )
 
 func GetListPost(c *fiber.Ctx) error {
-	data, err := utils.FetchFromDjango("blog", "posts", "")
+	data, err := utils.FetchFromDjango("blog", "posts", "", false)
 	if err != nil {
 		fmt.Println("Error fetching from Django =>get blog post list", err)
 		return fiber.NewError(fiber.ErrBadRequest.Code, "Error fetching blog post list")
@@ -25,7 +25,7 @@ func GetUserPost(c *fiber.Ctx) error {
 
 	verify, err := middleware.IsAuthontication(token)
 	if verify && err == nil {
-		data, err := utils.FetchFromDjango("blog", "posts"+"/"+userId, token)
+		data, err := utils.FetchFromDjango("blog", "posts"+"/"+userId, token, false)
 		if err != nil {
 			fmt.Println("Error fetching from Django => user blog post", err)
 			return fiber.NewError(fiber.ErrBadRequest.Code, "Error fetching user blog post")
