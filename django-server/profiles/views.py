@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets, status, mixins
+from rest_framework import permissions, viewsets, status, mixins, throttling
 from rest_framework.response import Response
 from django.core.cache import cache
 from .models import Profile, WorkHistory, SocialMedia, UserSkill
@@ -14,7 +14,9 @@ class ProfileViewSet(
     viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
 ):
     serializer_class = ProfileSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "update"
 
     def get_queryset(self):
         return Profile.objects.filter(user=self.request.user)
@@ -44,7 +46,9 @@ class ProfileViewSet(
 
 class WorkHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = WorkHistorySerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "uploads"
 
     def get_queryset(self):
         return WorkHistory.objects.get(user=self.request.user)
@@ -94,7 +98,9 @@ class WorkHistoryViewSet(viewsets.ModelViewSet):
 
 class SocialMediaViewSet(viewsets.ModelViewSet):
     serializer_class = SocialMediaSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "uploads"
 
     def get_queryset(self):
         return SocialMedia.objects.filter(user=self.request.user)
@@ -144,7 +150,9 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
 
 class UserSkillViewSet(viewsets.ModelViewSet):
     serializer_class = UserSkillSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "uploads"
 
     def get_queryset(self):
         return UserSkill.objects.filter(user=self.request.user)

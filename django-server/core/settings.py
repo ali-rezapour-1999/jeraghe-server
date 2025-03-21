@@ -51,12 +51,22 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    # Todo change this rate
+    "DEFAULT_THROTTLE_RATES": {
+        "get": "1000/day",
+        "update": "20/hour",
+        "anon": "30/hour",
+        "register": "10/hour",
+        "login": "5/minute",
+        "post": "100/hour",
+    },
 }
 
-AUTHENTICATION_BACKENDS = (
-    "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
-)
+AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
 # JWT Settings
 SIMPLE_JWT = {

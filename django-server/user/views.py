@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate, get_user_model
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, status, throttling
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -18,6 +18,8 @@ User = get_user_model()
 class UserRegistrationView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     serializer_class = UserRegistrationSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
+    throttle_scope = "register"
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -59,6 +61,8 @@ class UserRegistrationView(generics.CreateAPIView):
 class UserLoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = UserLoginSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
+    throttle_scope = "login"
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -94,6 +98,8 @@ class UserLoginView(generics.GenericAPIView):
 class UpdateUserInformationView(generics.UpdateAPIView):
     serializer_class = UserInformationSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [throttling.ScopedRateThrottle]
+    throttle_scope = "update"
 
     def get_object(self):
         return CustomUser.objects.get(pk=self.request.user.pk, is_active=True)
@@ -119,6 +125,8 @@ class UpdateUserInformationView(generics.UpdateAPIView):
 class GetUserInformationView(generics.UpdateAPIView):
     serializer_class = UserInformationSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [throttling.ScopedRateThrottle]
+    throttle_scope = "get"
 
     def get_object(self):
         return CustomUser.objects.get(pk=self.request.user.pk, is_active=True)
