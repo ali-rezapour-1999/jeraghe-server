@@ -16,7 +16,7 @@ var (
 func ConnectRedis() *redis.Client {
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_URL"),
-		DB:   1,
+		DB:   0,
 	})
 
 	_, err := RedisClient.Ping(ctx).Result()
