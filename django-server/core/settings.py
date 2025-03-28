@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     "base",
     "user",
     "profiles",
-    "job",
+    "idea",
     "blog",
 ]
 
@@ -45,6 +45,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "base.middleware.CurrentUserMiddleware",
 ]
 
 REST_FRAMEWORK = {

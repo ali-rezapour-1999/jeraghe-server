@@ -19,7 +19,7 @@ class Profile(BaseModel):
     def __str__(self):
         return f"{self.user.username}"
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "Profile"
         verbose_name_plural = "Profile"
 
@@ -38,7 +38,7 @@ class WorkHistory(BaseModel):
     def __str__(self):
         return f"{self.job_title} at {self.company_name}"
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "WorkHistory"
         verbose_name_plural = "WorkHistory"
 
@@ -63,7 +63,7 @@ class UserSkill(BaseModel):
     def __str__(self):
         return f"{self.user} - {self.skill_reference}"
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "UserSkill"
         verbose_name_plural = "UserSkills"
 
@@ -75,7 +75,7 @@ class SocialMedia(BaseModel):
     address = models.URLField(null=True, blank=True, unique=True)
     title = models.CharField(max_length=255, null=False, blank=False)
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "SocialMedia"
         verbose_name_plural = "SocialMedia"
 
