@@ -18,7 +18,7 @@ class CustomUserAdmin(BaseUserAdmin):
                 )
             },
         ),
-        (_("Personal info"), {"fields": ("phone_number", "profile_image")}),
+        (_("Personal info"), {"fields": ("phone_number", "image")}),
         (_("Permissions"), {"fields": ("is_active", "is_staff", "is_superuser")}),
         (_("Important dates"), {"fields": ("last_login",)}),
     )

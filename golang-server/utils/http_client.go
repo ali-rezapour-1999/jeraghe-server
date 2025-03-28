@@ -10,21 +10,17 @@ import (
 	"time"
 )
 
-var protectedEndpoints = map[string]bool{
-	"profile": true,
-}
-var cacheDuration = 60 * time.Hour
+var cacheDuration = 30 * time.Minute
 
-func FetchFromDjango(app string, endpoint string, token string) (json.RawMessage, error) {
-	cacheKey := "::" + endpoint
-	requiresAuth := protectedEndpoints[app]
+func FetchFromDjango(app string, endpoint string, token string, requiresAuth bool) (json.RawMessage, error) {
+	cacheKey := "::" + app + endpoint + token
 
 	val, err := config.RedisClient.Get(context.Background(), cacheKey).Result()
 	if err == nil {
 		return json.RawMessage(val), nil
 	}
 
-	req, err := http.NewRequest("GET", "http://localhost:8000/api/"+app+"/"+endpoint, nil)
+	req, err := http.NewRequest("GET", "http://localhost:8000/api/"+app+endpoint, nil)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return nil, err
@@ -41,7 +37,6 @@ func FetchFromDjango(app string, endpoint string, token string) (json.RawMessage
 		return nil, err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode == 200 {
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {

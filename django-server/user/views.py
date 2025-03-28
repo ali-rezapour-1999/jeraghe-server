@@ -3,7 +3,6 @@ from rest_framework import generics, status, throttling, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from user.models import CustomUser
 from base.utils import generate_unique_id
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
@@ -36,7 +35,7 @@ class UserRegistrationView(generics.CreateAPIView):
             email = serializer.validated_data["email"]
             username = serializer.validated_data["username"]
 
-            if User.objects.filter(email=email).first():
+            if User.objects.filter(email=email).exists():
                 return Response(
                     {
                         "message": "با این ایمیل قبلا حساب زدی برو لاگین کن",
@@ -47,7 +46,7 @@ class UserRegistrationView(generics.CreateAPIView):
             if User.objects.filter(username=username).exists():
                 return Response(
                     {
-                        "message": "با این نام کاربری قبلا حساب زده شده یکی چی دیگه رو امتحان کن",
+                        "message": "با این نام کاربری قبلا حساب زده شده یکی دیگه رو امتحان کن",
                         "error": serializer.errors,
                     },
                     status=status.HTTP_400_BAD_REQUEST,
@@ -55,11 +54,14 @@ class UserRegistrationView(generics.CreateAPIView):
 
             user = serializer.save(slug_id=generate_unique_id())
             refresh = RefreshToken.for_user(user)
+            user_serializer = UserInformationSerializer(user)
+
             return Response(
                 {
                     "message": "به جرقه خوش آومدی",
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
+                    "user": user_serializer.data,
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -83,19 +85,23 @@ class UserLoginView(generics.GenericAPIView):
 
             if not user:
                 return Response(
-                    {"message": "با این ایمیل پیدات نکردم مطمئتی درسته؟"},
+                    {"message": "با این ایمیل پیدات نکردم مطمئنی درسته؟"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             user = authenticate(request, email=email, password=password)
 
             if user:
                 refresh = RefreshToken.for_user(user)
+                user_serializer = UserInformationSerializer(user)
+
                 return Response(
                     {
                         "message": "خوش برگشتی",
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
-                    }
+                        "user": user_serializer.data,
+                    },
+                    status=status.HTTP_200_OK,
                 )
             return Response(
                 {"message": "رمز عبور اشتباه زدی"},
@@ -111,23 +117,17 @@ class UpdateUserInformationView(generics.UpdateAPIView):
     throttle_scope = "update"
 
     def get_object(self):
-        return CustomUser.objects.get(pk=self.request.user.pk, is_active=True)
+        return User.objects.get(pk=self.request.user.pk, is_active=True)
 
-    def update(self, request, *args, **kwargs):
+    def get(self, request):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "تغییرات با موفقیت اعمل شد", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
+        serializer = self.get_serializer(instance)
         return Response(
             {
-                "message": "خطایی در اعمال تغییرات صورت گرفته لطفا بعدا مجدد تکرار کنید",
-                "data": serializer.errors,
+                "message": "دریافت اطلاعات",
+                "data": serializer.data,
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_200_OK,
         )
 
 

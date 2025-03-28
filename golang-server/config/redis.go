@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -14,7 +15,7 @@ var (
 
 func ConnectRedis() *redis.Client {
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: os.Getenv("REDIS_URL"),
 		DB:   0,
 	})
 

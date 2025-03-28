@@ -5,16 +5,14 @@ from .serializers import CategorySerializer
 
 
 class CategoryView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     serializer_class = CategorySerializer
+    queryset = Category.objects.all()
 
-    def get(self):
-        cached_data = cache.get("category_list")
+    def get(self, request, *args, **kwargs):
+        cached_data = cache.get("category")
         if cached_data:
             return response.Response(cached_data, status=status.HTTP_200_OK)
 
-        categories = Category.objects.all()
-        serializer = self.get_serializer(categories, many=True)
-        data = serializer.data
-        cache.set("category_list", data, timeout=7200)
-        return Response(data, status=status.HTTP_200_OK)
+        return super().get(request, *args, **kwargs)

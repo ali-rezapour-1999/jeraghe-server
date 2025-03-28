@@ -8,6 +8,7 @@ import (
 
 func ErrorHandler(c *fiber.Ctx) error {
 	err := c.Next()
+	log.Println(c)
 	if err != nil {
 		log.Println("Error:", err)
 

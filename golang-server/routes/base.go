@@ -8,16 +8,17 @@ import (
 )
 
 func GetCategoryList(c *fiber.Ctx) error {
-	data, err := utils.FetchFromDjango("base", "categroy-list", "")
+	token := ""
+	data, err := utils.FetchFromDjango("base/", "category/", token, true)
 	if err != nil {
-		fmt.Println("Error fetching from Django =>get blog post list", err)
-		return fiber.NewError(fiber.ErrBadRequest.Code, "Error fetching blog post list")
+		fmt.Println("Error fetching from Django => base/category", err)
+		return fiber.NewError(fiber.ErrBadRequest.Code, "Error درخواست دیتا با خطا مواجه شده")
 	}
-	fmt.Println("get Category List from Django")
+	fmt.Println("get base/catgory")
 	return c.JSON(data)
 }
 
 func BaseRoutes(app *fiber.App) {
-	api := app.Group("/base/")
-	api.Get("/category-list", GetCategoryList)
+	api := app.Group("/base")
+	api.Get("/category", GetCategoryList)
 }
