@@ -14,7 +14,10 @@ DEBUG = os.getenv("DEBUG")
 
 ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")  # type: ignore
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8080",  # سرور Django
+    "http://127.0.0.1:8080",  # Go Gateway
+]
 
 INSTALLED_APPS = [
     "jazzmin",
@@ -97,11 +100,10 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 
 ROOT_URLCONF = "core.urls"
 
-CORS_ALLOWED_ORIGINS = (
-    os.getenv("CORS_ALLOWED_ORIGINS").split(",")
-    if os.getenv("CORS_ALLOWED_ORIGINS")
-    else None
-)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",  # Django backend که از این آدرس است
+    "http://127.0.0.1:8080",  # Go Gateway که از این آدرس است
+]
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
