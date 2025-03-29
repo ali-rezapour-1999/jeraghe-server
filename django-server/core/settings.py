@@ -101,8 +101,8 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ROOT_URLCONF = "core.urls"
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",  # Django backend که از این آدرس است
-    "http://127.0.0.1:8080",  # Go Gateway که از این آدرس است
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -110,6 +110,7 @@ CORS_ALLOW_HEADERS = [
     "authorization",
     "content-type",
     "x-csrftoken",
+    "x-csrf-token",
 ]
 
 TEMPLATES = [

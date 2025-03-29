@@ -1,14 +1,11 @@
 package config
 
 import (
-	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/csrf"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/utils"
 )
 
 func SetupFiber() *fiber.App {
@@ -26,17 +23,12 @@ func SetupFiber() *fiber.App {
 		},
 	}))
 
-	app.Use(csrf.New(csrf.Config{
-		KeyLookup:      "header:X-Csrf-Token",
-		CookieName:     "csrf_",
-		CookieSameSite: "Lax",
-		Expiration:     1 * time.Hour,
-		KeyGenerator:   utils.UUIDv4,
-	}))
-
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: os.Getenv("CORS_ALLOW_ORIGINS"),
-		AllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
+		AllowOrigins:     "http://localhost:8000,http://127.0.0.1:8000,http://django:8000",
+		AllowHeaders:     "Authorization,Content-Type,X-Csrf-Token,x-csrftoken",
+		AllowMethods:     "GET,POST,PUT,DELETE",
+		AllowCredentials: true,
+		ExposeHeaders:    "X-Csrf-Token,x-csrftoken",
 	}))
 
 	return app
