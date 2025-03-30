@@ -95,8 +95,8 @@ func JWTMiddleware(c *fiber.Ctx) error {
 func SetupMiddleware(app *fiber.App) {
 	app.Use(func(c *fiber.Ctx) error {
 		privateRoutes := []string{
-			"/api/auth/get/",
-			"/api/prifile/",
+			"/api/private/auth/get/",
+			"/api/private/profile/",
 		}
 		for _, route := range privateRoutes {
 			if strings.HasPrefix(c.Path(), route) {

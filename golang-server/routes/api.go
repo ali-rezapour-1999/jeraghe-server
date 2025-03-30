@@ -10,9 +10,8 @@ import (
 
 func SetupRoutes(app *fiber.App, db *sql.DB) {
 	public := app.Group("/api/public")
-	// protected := app.Group("/api/protected") // Fixed typo
 
 	public.Get("/category/", controller.GetCategroyController)
 
-	app.All("/api/*", proxys.ProxyToDjango(db))
+	app.All("/api/private/*", proxys.ProxyToDjango(db))
 }
