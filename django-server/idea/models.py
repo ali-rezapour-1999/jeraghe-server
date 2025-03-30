@@ -4,18 +4,24 @@ from user.models import CustomUser
 
 
 class Idea(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ideas")
-    title = models.CharField(max_length=255, null=False, blank=False)
-    image = models.ImageField(upload_to="idea_images/", null=True, blank=True)
-    description = models.TextField()
-    target_audience = models.TextField(verbose_name="مخاطب هدف")
-    requirements = models.TextField(verbose_name="نیازمندی‌ها")
     status_choices = [
         ("idea", "ایده خام"),
         ("development", "در حال توسعه"),
         ("prototype", "نمونه اولیه"),
         ("funding", "در حال جذب سرمایه"),
     ]
+
+    collaboration_type_choices = [
+        ("full_time", "تمام‌وقت"),
+        ("part_time", "پاره‌وقت"),
+        ("consultant", "مشاوره‌ای"),
+        ("equity", "سهام‌محور"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ideas")
+    title = models.CharField(max_length=255, null=False, blank=False)
+    image = models.ImageField(upload_to="idea_images/", null=True, blank=True)
+    description = models.TextField()
     status = models.CharField(
         max_length=50,
         choices=status_choices,
@@ -28,12 +34,6 @@ class Idea(BaseModel):
         default=False, verbose_name="نیاز به همکار داری؟"
     )
     required_skills = models.TextField(verbose_name="مهارت‌های مورد نیاز", blank=True)
-    collaboration_type_choices = [
-        ("full_time", "تمام‌وقت"),
-        ("part_time", "پاره‌وقت"),
-        ("consultant", "مشاوره‌ای"),
-        ("equity", "سهام‌محور"),
-    ]
     collaboration_type = models.CharField(
         max_length=50,
         choices=collaboration_type_choices,

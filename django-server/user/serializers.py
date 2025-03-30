@@ -50,17 +50,25 @@ class SetPasswordSerializer(serializers.Serializer):
         try:
             validate_password(value)
         except ValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError(e.default_detail)
         return value
 
-    def validate(self, data):
-        if data["new_password"] != data["confirm_password"]:
-            raise serializers.ValidationError(
-                "رمز عبور جدید و تأیید آن با هم تطابق ندارند."
-            )
-        return data
 
-    def save(self, user):
-        user.set_password(self.validated_data["new_password"])
-        user.save()
-        return user
+def save(self, **kwargs):
+    if not hasattr(self, "validated_data") or self.validated_data is None:
+        error_msg = "داده‌های معتبر قبل از ذخیره‌سازی باید تأیید شوند."
+        raise ValueError(error_msg)
+
+    user = kwargs.get("user")
+    if not user:
+        error_msg = "کاربر نباید تهی باشد."
+        raise ValueError(error_msg)
+
+    new_password = self.validated_data.get("new_password")
+    if not new_password:
+        error_msg = "رمز عبور جدید وارد نشده است."
+        raise ValueError(error_msg)
+
+    user.set_password(new_password)
+    user.save()
+    return user
