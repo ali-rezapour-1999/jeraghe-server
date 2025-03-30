@@ -27,9 +27,11 @@ func main() {
 	defer db.Close()
 	fmt.Println("✅ PostgreSQL is up and running!")
 
-	routes.SetupRoutes(app)
+	routes.SetupRoutes(app, db)
+
 	middleware.SetupMiddleware(app)
 	middleware.SetupErrorMiddleware(app, db)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

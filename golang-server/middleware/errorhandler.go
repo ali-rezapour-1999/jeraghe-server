@@ -33,45 +33,38 @@ func SetupErrorMiddleware(app *fiber.App, db *sql.DB) {
 	}
 
 	app.Use(func(c *fiber.Ctx) error {
+		err := c.Next()
+
 		headers := make(map[string]string)
 		for key, values := range c.GetReqHeaders() {
 			headers[key] = strings.Join(values, ",")
 		}
 
-		err := c.Next()
-		if err != nil {
+		statusCode := c.Response().StatusCode()
+		if statusCode >= 400 {
 			trace := ExceptionTrace{
 				Timestamp:      time.Now().UTC(),
 				Path:           c.Path(),
 				Method:         c.Method(),
-				StatusCode:     c.Response().StatusCode(),
-				ErrorMessage:   err.Error(),
 				StackTrace:     fmt.Sprintf("%+v", err),
+				StatusCode:     statusCode,
+				ErrorMessage:   string(c.Response().Body()),
 				RequestHeaders: headers,
 				RequestBody:    string(c.Body()),
 				IPAddress:      c.IP(),
 			}
 
 			token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
-			if userID, parseErr := parseUserIDFromToken(token); parseErr == nil {
+			if userID, parseErr := ParseUserIDFromToken(token); parseErr == nil {
 				trace.UserID = userID
 			} else {
 				fmt.Printf("Warning: Failed to parse user ID from token: %v\n", parseErr)
 			}
 
-			if trace.StatusCode == 0 || trace.StatusCode == fiber.StatusOK {
-				if e, ok := err.(*fiber.Error); ok {
-					trace.StatusCode = e.Code
-				} else {
-					trace.StatusCode = fiber.StatusInternalServerError
-				}
-			}
-
-			go logExceptionTrace(db, trace)
-
-			return ErrorHandler(c, err)
+			go LogExceptionTrace(db, trace)
 		}
-		return nil
+
+		return err
 	})
 }
 
@@ -119,7 +112,7 @@ func ErrorHandler(c *fiber.Ctx, err error) error {
 	})
 }
 
-func parseUserIDFromToken(tokenString string) (string, error) {
+func ParseUserIDFromToken(tokenString string) (string, error) {
 	if tokenString == "" {
 		return "", nil
 	}
@@ -158,7 +151,7 @@ func parseUserIDFromToken(tokenString string) (string, error) {
 	return "", fmt.Errorf("user ID not found in token")
 }
 
-func logExceptionTrace(db *sql.DB, trace ExceptionTrace) {
+func LogExceptionTrace(db *sql.DB, trace ExceptionTrace) {
 	if db == nil {
 		fmt.Println("Warning: Database connection not available for exception logging")
 		return
@@ -213,4 +206,8 @@ func LogError(db *sql.DB, err error) {
 	if err != nil {
 		fmt.Printf("Failed to log error to database: %v\n", err)
 	}
+}
+
+func GetTimestamp() time.Time {
+	return time.Now().UTC()
 }
