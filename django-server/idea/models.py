@@ -15,7 +15,7 @@ class Idea(BaseModel):
         ("full_time", "تمام‌وقت"),
         ("part_time", "پاره‌وقت"),
         ("consultant", "مشاوره‌ای"),
-        ("equity", "سهام‌محور"),
+        ("participatory", "مشارکتی"),
     ]
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ideas")
