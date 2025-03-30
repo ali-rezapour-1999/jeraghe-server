@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go-server/config"
 	"net/http"
 	"time"
@@ -15,8 +16,9 @@ func GetCategroyController(c *fiber.Ctx) error {
 
 	category, err := config.RedisClient.Get(ctx, "category").Result()
 	if err == nil {
-		var cachedData []map[string]interface{}
+		var cachedData []map[string]interface{ any }
 		if json.Unmarshal([]byte(category), &cachedData) == nil {
+			fmt.Println("Category from redis", cachedData)
 			return c.JSON(cachedData)
 		}
 	}
@@ -27,14 +29,14 @@ func GetCategroyController(c *fiber.Ctx) error {
 	}
 	defer rows.Close()
 
-	var data []map[string]interface{}
+	var data []map[string]interface{ any }
 	for rows.Next() {
 		var id int
 		var title string
 		if err := rows.Scan(&id, &title); err != nil {
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error in processing category data"})
 		}
-		data = append(data, map[string]interface{}{"id": id, "title": title})
+		data = append(data, map[string]interface{ any }{"id": id, "title": title})
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -42,10 +44,11 @@ func GetCategroyController(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error in convert category Data to JSON"})
 	}
 
-	err = config.RedisClient.Set(ctx, "category", jsonData, 1*time.Hour).Err()
+	err = config.RedisClient.Set(ctx, "category", jsonData, 24*time.Hour).Err()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error in save category data to Redis"})
 	}
+	fmt.Println("Category from database", data)
 
 	return c.JSON(data)
 }

@@ -34,9 +34,9 @@ func ConnectPostgres() *sql.DB {
 		return nil
 	}
 
-	db.SetMaxOpenConns(25)                 // Maximum number of open connections
-	db.SetMaxIdleConns(25)                 // Maximum number of idle connections
-	db.SetConnMaxLifetime(5 * time.Minute) // Maximum lifetime of a connection
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	DB = db
 	fmt.Println("✅ Secure connection to PostgreSQL established!")

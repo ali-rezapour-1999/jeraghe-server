@@ -33,9 +33,42 @@ func SetupErrorMiddleware(app *fiber.App, db *sql.DB) {
 	}
 
 	app.Use(func(c *fiber.Ctx) error {
+		headers := make(map[string]string)
+		for key, values := range c.GetReqHeaders() {
+			headers[key] = strings.Join(values, ",")
+		}
+
 		err := c.Next()
 		if err != nil {
-			go logExceptionTrace(db, c, err)
+			trace := ExceptionTrace{
+				Timestamp:      time.Now().UTC(),
+				Path:           c.Path(),
+				Method:         c.Method(),
+				StatusCode:     c.Response().StatusCode(),
+				ErrorMessage:   err.Error(),
+				StackTrace:     fmt.Sprintf("%+v", err),
+				RequestHeaders: headers,
+				RequestBody:    string(c.Body()),
+				IPAddress:      c.IP(),
+			}
+
+			token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
+			if userID, parseErr := parseUserIDFromToken(token); parseErr == nil {
+				trace.UserID = userID
+			} else {
+				fmt.Printf("Warning: Failed to parse user ID from token: %v\n", parseErr)
+			}
+
+			if trace.StatusCode == 0 || trace.StatusCode == fiber.StatusOK {
+				if e, ok := err.(*fiber.Error); ok {
+					trace.StatusCode = e.Code
+				} else {
+					trace.StatusCode = fiber.StatusInternalServerError
+				}
+			}
+
+			go logExceptionTrace(db, trace)
+
 			return ErrorHandler(c, err)
 		}
 		return nil
@@ -125,46 +158,13 @@ func parseUserIDFromToken(tokenString string) (string, error) {
 	return "", fmt.Errorf("user ID not found in token")
 }
 
-func logExceptionTrace(db *sql.DB, c *fiber.Ctx, err error) {
+func logExceptionTrace(db *sql.DB, trace ExceptionTrace) {
 	if db == nil {
 		fmt.Println("Warning: Database connection not available for exception logging")
 		return
 	}
 
-	headers := make(map[string]string)
-	for key, values := range c.GetReqHeaders() {
-		headers[key] = strings.Join(values, ",")
-	}
-	headersJSON, _ := json.Marshal(headers)
-
-	token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
-	userID, parseErr := parseUserIDFromToken(token)
-	if parseErr != nil {
-		fmt.Printf("Warning: Failed to parse user ID from token: %v\n", parseErr)
-		userID = ""
-	}
-
-	statusCode := c.Response().StatusCode()
-	if statusCode == 0 || statusCode == fiber.StatusOK {
-		if e, ok := err.(*fiber.Error); ok {
-			statusCode = e.Code
-		} else {
-			statusCode = fiber.StatusInternalServerError
-		}
-	}
-
-	trace := ExceptionTrace{
-		Timestamp:      time.Now().UTC(),
-		Path:           c.Path(),
-		Method:         c.Method(),
-		StatusCode:     statusCode,
-		ErrorMessage:   err.Error(),
-		StackTrace:     fmt.Sprintf("%+v", err),
-		RequestHeaders: headers,
-		RequestBody:    string(c.Body()),
-		UserID:         userID,
-		IPAddress:      c.IP(),
-	}
+	headersJSON, _ := json.Marshal(trace.RequestHeaders)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -175,11 +175,42 @@ func logExceptionTrace(db *sql.DB, c *fiber.Ctx, err error) {
 			stack_trace, request_headers, request_body, user_id, ip_address
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
-	_, err = db.ExecContext(ctx, query,
+	_, err := db.ExecContext(ctx, query,
 		trace.Timestamp, trace.Path, trace.Method, trace.StatusCode, trace.ErrorMessage,
 		trace.StackTrace, headersJSON, trace.RequestBody, trace.UserID, trace.IPAddress,
 	)
 	if err != nil {
 		fmt.Printf("Failed to log exception trace: %v\n", err)
+	}
+}
+
+func LogError(db *sql.DB, err error) {
+	trace := ExceptionTrace{
+		Timestamp:    time.Now().UTC(),
+		ErrorMessage: err.Error(),
+		StackTrace:   fmt.Sprintf("%+v", err),
+	}
+
+	if db == nil {
+		fmt.Printf("❌ [Fallback] %s - %s\n", trace.ErrorMessage, trace.StackTrace)
+		return
+	}
+
+	if err := createExceptionTable(db); err != nil {
+		fmt.Printf("Warning: Failed to create exception_traces table: %v\n", err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		INSERT INTO exception_traces (
+			timestamp, error_message, stack_trace
+		) VALUES ($1, $2, $3)
+	`
+	_, err = db.ExecContext(ctx, query, trace.Timestamp, trace.ErrorMessage, trace.StackTrace)
+	if err != nil {
+		fmt.Printf("Failed to log error to database: %v\n", err)
 	}
 }
