@@ -10,10 +10,8 @@ urlpatterns = [
     path("api/private/profile/", include("profiles.urls")),
     path("api/private/blog/", include("blog.urls")),
     path("api/private/base/", include("base.urls")),
+    path("api/private/idea/", include("idea.urls")),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,12 +1,13 @@
+from django.db.models import QuerySet
 from rest_framework import permissions, viewsets, status, generics, throttling
 from rest_framework.response import Response
 from django.core.cache import cache
-from .models import Profile, WorkHistory, SocialMedia, UserSkill
+from .models import Profile, WorkHistory, SocialMedia, Skill
 from .serializers import (
     ProfileSerializer,
     WorkHistorySerializer,
     SocialMediaSerializer,
-    UserSkillSerializer,
+    SkillSerializer,
 )
 
 
@@ -47,7 +48,7 @@ class ProfileGetView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "get"
 
-    def get_object(self):
+    def get_queryset(self):  # type:ignore
         return Profile.objects.get(user=self.request.user)
 
     def get(self, request):
@@ -73,7 +74,7 @@ class WorkHistoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "uploads"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type:ignore
         return WorkHistory.objects.get(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
@@ -82,7 +83,7 @@ class WorkHistoryViewSet(viewsets.ModelViewSet):
         data = serializer.data
         return Response(data)
 
-    def perform_create(self, request):
+    def create(self, request):
         serializer = self.get_serializer(data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save(user=self.request.user)
@@ -104,7 +105,7 @@ class WorkHistoryViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            cache.delete("work_history")
+            cache.delete("work-history")
             return Response(
                 {"message": "تغییرات با موفقیت اعمال شد", "data": serializer.data},
                 status=status.HTTP_200_OK,
@@ -114,9 +115,14 @@ class WorkHistoryViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def destroy(self, instance):
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
         instance.delete()
-        cache.delete("work_history")
+        cache.delete("work-history")
+        return Response(
+            {"message": "آیتم مورد نظر با موفقیت حذف شد"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
 
 class SocialMediaViewSet(viewsets.ModelViewSet):
@@ -125,7 +131,7 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "uploads"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type:ignore
         return SocialMedia.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
@@ -166,19 +172,24 @@ class SocialMediaViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def destroy(self, instance):
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
         instance.delete()
         cache.delete("social-media")
+        return Response(
+            {"message": "آیتم مورد نظر با موفقیت حذف شد"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
 
-class UserSkillViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSkillSerializer
+class SkillViewSet(viewsets.ModelViewSet):
+    serializer_class = SkillSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "uploads"
 
-    def get_queryset(self):
-        return UserSkill.objects.filter(user=self.request.user)
+    def get_queryset(self) -> QuerySet[Skill]:  # type: ignore
+        return Skill.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -218,6 +229,11 @@ class UserSkillViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def destroy(self, instance):
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
         instance.delete()
         cache.delete("user-skill")
+        return Response(
+            {"message": "آیتم مورد نظر با موفقیت حذف شد"},
+            status=status.HTTP_204_NO_CONTENT,
+        )

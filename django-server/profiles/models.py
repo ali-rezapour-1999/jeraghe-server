@@ -43,7 +43,7 @@ class WorkHistory(BaseModel):
         verbose_name_plural = "WorkHistory"
 
 
-class UserSkill(BaseModel):
+class Skill(BaseModel):
     user = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name="user_skills"
     )
@@ -64,8 +64,8 @@ class UserSkill(BaseModel):
         return f"{self.user} - {self.skill_reference}"
 
     class Meta(BaseModel.Meta):
-        verbose_name = "UserSkill"
-        verbose_name_plural = "UserSkills"
+        verbose_name = "مهارت های کاربر"
+        verbose_name_plural = "مهارت های کاربر"
 
 
 class SocialMedia(BaseModel):

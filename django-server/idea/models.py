@@ -1,5 +1,5 @@
 from django.db import models
-from base.models import BaseModel, Tags
+from base.models import BaseModel, Category, Tags
 from user.models import CustomUser
 
 
@@ -51,6 +51,9 @@ class Idea(BaseModel):
         max_length=200, verbose_name="لینک‌های مرتبط", blank=True
     )
     tags = models.ManyToManyField(Tags, related_name="idea_tags", blank=True)
+    category = models.ForeignKey(
+        Category, related_name="idea_category", on_delete=models.DO_NOTHING
+    )
     contact_info = models.TextField(verbose_name="راه‌های ارتباطی", blank=True)
 
     def __str__(self):
