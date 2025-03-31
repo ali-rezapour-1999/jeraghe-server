@@ -67,6 +67,9 @@ REST_FRAMEWORK = {
         "register": "500/hour",
         "login": "500/minute",
         "post": "500/hour",
+        # change this for create idea
+        "idea_create": "500/hour",
+        "idea_update": "500/hour",
     },
 }
 
@@ -134,7 +137,9 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Database
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgres://postgres:admin@127.0.0.1:5432/jeraghe"
+)
 
 DATABASES = {
     "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600),
@@ -160,14 +165,22 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379"),
         "OPTIONS": {
+            "db": 0,
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+            "PASSWORD": os.getenv("REDIS_PASSWORD"),
+            "SOCKET_CONNECT_TIMEOUT": 60,
+            "SOCKET_TIMEOUT": 60,
+            "CONNECTION_POOL_KWARGS": {"max_connections": 100},
         },
         "KEY_PREFIX": "",
         "VERSION": "",
     }
 }
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")

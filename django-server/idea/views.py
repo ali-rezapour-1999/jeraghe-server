@@ -6,6 +6,7 @@ from idea.models import Idea
 class CreateIdeaView(generics.CreateAPIView):
     queryset = Idea.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "idea"
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -28,6 +29,7 @@ class CreateIdeaView(generics.CreateAPIView):
 class UpdateIdeaView(generics.UpdateAPIView):
     queryset = Idea.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "idea_update"
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
