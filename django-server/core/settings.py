@@ -10,13 +10,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = os.getenv("DEBUG")
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8080",  # سرور Django
-    "http://127.0.0.1:8080",  # Go Gateway
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
 ]
 
 INSTALLED_APPS = [
@@ -77,7 +77,7 @@ AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -176,6 +176,7 @@ CACHES = {
             "CONNECTION_POOL_KWARGS": {"max_connections": 100},
         },
         "KEY_PREFIX": "",
+        "TIMEOUT": 300,
         "VERSION": "",
     }
 }

@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from base.utils import generate_unique_id
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth import get_user_model
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
 from .tasks import send_reset_email
@@ -116,7 +115,7 @@ class UpdateUserInformationView(generics.UpdateAPIView):
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "update"
 
-    def get_object(self):
+    def get_object(self):  # type: ignore
         return User.objects.get(pk=self.request.user.pk, is_active=True)
 
     def get(self, request):
@@ -137,24 +136,15 @@ class GetUserInformationView(generics.RetrieveAPIView):
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "get"
 
-    def get_object(self):
+    def get_object(self):  # type: ignore
         return User.objects.get(pk=self.request.user.pk, is_active=True)
 
     def get(self, request):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "دریافت اطلاعات", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
+        serializer = self.get_serializer(instance)
         return Response(
-            {
-                "message": "در دریافت اطاعات با مشکل مواجه شدیم",
-                "data": serializer.errors,
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+            {"message": "دریافت اطلاعات", "data": serializer.data},
+            status=status.HTTP_200_OK,
         )
 
 
@@ -175,7 +165,7 @@ class RequestPasswordReset(generics.GenericAPIView):
                 uid = urlsafe_base64_encode(str(user.pk).encode())
                 link = f"http://{domain}/reset-password/{uid}/{token}/"
 
-                send_reset_email.delay(email, link)
+                # send_reset_email.delay(email, link)
 
                 return Response(
                     {

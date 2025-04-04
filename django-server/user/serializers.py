@@ -53,22 +53,21 @@ class SetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(e.default_detail)
         return value
 
+    def save(self, **kwargs):
+        if not hasattr(self, "validated_data") or self.validated_data is None:
+            error_msg = "داده‌های معتبر قبل از ذخیره‌سازی باید تأیید شوند."
+            raise ValueError(error_msg)
 
-def save(self, **kwargs):
-    if not hasattr(self, "validated_data") or self.validated_data is None:
-        error_msg = "داده‌های معتبر قبل از ذخیره‌سازی باید تأیید شوند."
-        raise ValueError(error_msg)
+        user = kwargs.get("user")
+        if not user:
+            error_msg = "کاربر نباید تهی باشد."
+            raise ValueError(error_msg)
 
-    user = kwargs.get("user")
-    if not user:
-        error_msg = "کاربر نباید تهی باشد."
-        raise ValueError(error_msg)
+        new_password = self.validate_new_password("new_password")
+        if not new_password:
+            error_msg = "رمز عبور جدید وارد نشده است."
+            raise ValueError(error_msg)
 
-    new_password = self.validated_data.get("new_password")
-    if not new_password:
-        error_msg = "رمز عبور جدید وارد نشده است."
-        raise ValueError(error_msg)
-
-    user.set_password(new_password)
-    user.save()
-    return user
+        user.set_password(new_password)
+        user.save()
+        return user
