@@ -1,10 +1,12 @@
 from rest_framework import serializers
+from base.serializers import TagsSerializer
 from idea.models import Idea
 from user.serializers import UserInformationSerializer
 
 
-class CreateIdeaSerializer(serializers.ModelSerializer):
+class IdeaSerializer(serializers.ModelSerializer):
     user = UserInformationSerializer(read_only=True)
+    tags = TagsSerializer()
 
     class Meta:
         model = Idea
@@ -19,7 +21,8 @@ class CreateIdeaSerializer(serializers.ModelSerializer):
             "required_skills",
             "collaboration_type",
             "related_files",
-            "related_links",
             "tags",
-            "contact_info",
+            "category",
+            "repo_url",
+            "contact_info"
         ]

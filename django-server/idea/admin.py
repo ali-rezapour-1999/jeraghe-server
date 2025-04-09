@@ -6,7 +6,7 @@ from .models import Idea
 class IdeaAdmin(admin.ModelAdmin):
     list_display = ("title", "user", "status", "needs_collaborators", "created_at")
     list_filter = ("status", "needs_collaborators")
-    search_fields = ("title", "description", "target_audience")
+    search_fields = ("title", "description")
     ordering = ("-created_at",)
     date_hierarchy = "created_at"
     fieldsets = (
@@ -17,8 +17,7 @@ class IdeaAdmin(admin.ModelAdmin):
                     "title",
                     "user",
                     "description",
-                    "target_audience",
-                    "requirements",
+                    "category"
                 )
             },
         ),
@@ -32,7 +31,7 @@ class IdeaAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("فایل‌ها و لینک‌ها", {"fields": ("related_files", "related_links")}),
+        ("فایل‌ها و لینک‌ها", {"fields": ("repo_url", "related_files")}),
         ("تگ‌ها و اطلاعات تماس", {"fields": ("tags", "contact_info")}),
         ("وضعیت ایده", {"fields": ("status", "image")}),
     )

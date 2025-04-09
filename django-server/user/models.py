@@ -2,6 +2,7 @@ from django.contrib.auth.models import (
     AbstractBaseUser,
     PermissionsMixin,
 )
+
 from .manager import CustomUserManager
 from django.db import models
 from base.utils import validate_iranian_phone_number
@@ -15,9 +16,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ("manager", "Manager"),
     ]
     slug_id = models.CharField(max_length=255, unique=True, blank=True)
-    email = models.EmailField(
-        unique=True,
-    )
+    email = models.EmailField(unique=True)
     image = models.ImageField(upload_to="media/blog/%Y/%m/%d/", blank=True, null=True)
     phone_number = models.CharField(
         max_length=11,
@@ -38,9 +37,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
-    class Meta:
+    class Meta(PermissionsMixin.Meta , AbstractBaseUser.Meta):
         verbose_name = "User"
         verbose_name_plural = "User"
 
-    def __str__(self):
-        return self.email
