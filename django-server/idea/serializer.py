@@ -1,12 +1,10 @@
 from rest_framework import serializers
-from base.serializers import TagsSerializer
 from idea.models import Idea
 from user.serializers import UserInformationSerializer
 
 
 class IdeaSerializer(serializers.ModelSerializer):
     user = UserInformationSerializer(read_only=True)
-    tags = TagsSerializer()
 
     class Meta:
         model = Idea

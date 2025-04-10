@@ -5,12 +5,10 @@ from .views import (
     ProfileGetView,
     SkillViewSet,
     WorkHistoryViewSet,
-    SocialMediaViewSet,
 )
 
 router = DefaultRouter()
 router.register(r"work-history", WorkHistoryViewSet, basename="work-history")
-router.register(r"social-media", SocialMediaViewSet, basename="social-media")
 router.register(r"user-skills", SkillViewSet, basename="user-skills")
 
 urlpatterns = [

@@ -12,20 +12,20 @@ class CreateIdeaView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         try:
-            if serializer.is_valid():
+            if  serializer.is_valid():
                 idea = serializer.save(user=request.user)
                 return response.Response(
                     {"message": "ایدت با موفقیت ثبت شده", "data": serializer.data},
                     status=status.HTTP_201_CREATED,
                 )
-
-            return response.Response(
+            else : 
+                return response.Response(
                 {
                     "message": "تو مسیر ثبت ایدت با خطا مواجه شدیم",
                     "error": serializer.errors,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
-            )
+                )
         except Exception as e:
             return response.Response(
                 {

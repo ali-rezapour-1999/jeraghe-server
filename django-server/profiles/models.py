@@ -66,18 +66,3 @@ class Skill(BaseModel):
     class Meta(BaseModel.Meta):
         verbose_name = "مهارت های کاربر"
         verbose_name_plural = "مهارت های کاربر"
-
-
-class SocialMedia(BaseModel):
-    user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="socila_media"
-    )
-    address = models.URLField(null=True, blank=True, unique=True)
-    title = models.CharField(max_length=255, null=False, blank=False)
-
-    class Meta(BaseModel.Meta):
-        verbose_name = "SocialMedia"
-        verbose_name_plural = "SocialMedia"
-
-    def __str__(self):
-        return f"{self.user} - {self.address}"
