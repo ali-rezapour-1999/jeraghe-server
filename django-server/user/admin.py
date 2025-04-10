@@ -15,6 +15,7 @@ class CustomUserAdmin(BaseUserAdmin):
                     "email",
                     "username",
                     "password",
+                    "role"
                 )
             },
         ),

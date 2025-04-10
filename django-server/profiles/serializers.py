@@ -1,23 +1,15 @@
 from rest_framework import serializers
-from .models import Profile, WorkHistory, SocialMedia, UserSkill
+from .models import Profile, WorkHistory, Skill
 from base.serializers import TagsSerializer
 from user.serializers import UserInformationSerializer
 
 
-class SocialMediaSerializer(serializers.ModelSerializer):
-    user = UserInformationSerializer(read_only=True)
-
-    class Meta:
-        model = SocialMedia
-        fields = ["user", "title", "address", "slug_id"]
-
-
-class UserSkillSerializer(serializers.ModelSerializer):
+class SkillSerializer(serializers.ModelSerializer):
     skill_reference = TagsSerializer(read_only=True)
     user = UserInformationSerializer(read_only=True)
 
     class Meta:
-        model = UserSkill
+        model = Skill
         fields = ["id", "user", "skill_reference", "moon", "year", "level"]
 
 

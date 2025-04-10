@@ -32,7 +32,7 @@ class Post(BaseModel):
     def __str__(self):
         return self.title
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         ordering = ("-publish",)
         verbose_name = "پست"
         verbose_name_plural = "پست"

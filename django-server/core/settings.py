@@ -10,11 +10,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = os.getenv("DEBUG")
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")  # type: ignore
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
 
 INSTALLED_APPS = [
     "jazzmin",
@@ -33,7 +36,7 @@ INSTALLED_APPS = [
     "base",
     "user",
     "profiles",
-    "job",
+    "idea",
     "blog",
 ]
 
@@ -45,6 +48,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "base.middleware.CurrentUserMiddleware",
 ]
 
 REST_FRAMEWORK = {
@@ -63,6 +67,9 @@ REST_FRAMEWORK = {
         "register": "500/hour",
         "login": "500/minute",
         "post": "500/hour",
+        # change this for create idea
+        "idea_create": "500/hour",
+        "idea_update": "500/hour",
     },
 }
 
@@ -70,9 +77,9 @@ AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": True,
+    "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "ALGORITHM": "HS256",
@@ -96,17 +103,17 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 
 ROOT_URLCONF = "core.urls"
 
-CORS_ALLOWED_ORIGINS = (
-    os.getenv("CORS_ALLOWED_ORIGINS").split(",")
-    if os.getenv("CORS_ALLOWED_ORIGINS")
-    else None
-)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     "authorization",
     "content-type",
     "x-csrftoken",
+    "x-csrf-token",
 ]
 
 TEMPLATES = [
@@ -130,7 +137,9 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Database
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgres://postgres:admin@127.0.0.1:5432/jeraghe"
+)
 
 DATABASES = {
     "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600),
@@ -156,14 +165,23 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379"),
         "OPTIONS": {
+            "db": 0,
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+            "PASSWORD": os.getenv("REDIS_PASSWORD"),
+            "SOCKET_CONNECT_TIMEOUT": 60,
+            "SOCKET_TIMEOUT": 60,
+            "CONNECTION_POOL_KWARGS": {"max_connections": 100},
         },
         "KEY_PREFIX": "",
+        "TIMEOUT": 300,
         "VERSION": "",
     }
 }
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")

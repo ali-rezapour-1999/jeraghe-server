@@ -17,9 +17,9 @@ class Profile(BaseModel):
     desciption = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.user.username}"
+        return f"{self.user}"
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "Profile"
         verbose_name_plural = "Profile"
 
@@ -38,20 +38,20 @@ class WorkHistory(BaseModel):
     def __str__(self):
         return f"{self.job_title} at {self.company_name}"
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "WorkHistory"
         verbose_name_plural = "WorkHistory"
 
 
-class UserSkill(BaseModel):
+class Skill(BaseModel):
     user = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name="user_skills"
     )
     skill_reference = models.ForeignKey(
         Tags, on_delete=models.CASCADE, related_name="related_skill"
     )
-    year = models.PositiveIntegerField()
-    moon = models.PositiveIntegerField()
+    year = models.PositiveIntegerField(null=True , blank=True)
+    moon = models.PositiveIntegerField(null=True , blank=True)
     level = models.DecimalField(
         max_digits=5,
         decimal_places=1,
@@ -63,21 +63,6 @@ class UserSkill(BaseModel):
     def __str__(self):
         return f"{self.user} - {self.skill_reference}"
 
-    class Meta:
-        verbose_name = "UserSkill"
-        verbose_name_plural = "UserSkills"
-
-
-class SocialMedia(BaseModel):
-    user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="socila_media"
-    )
-    address = models.URLField(null=True, blank=True, unique=True)
-    title = models.CharField(max_length=255, null=False, blank=False)
-
-    class Meta:
-        verbose_name = "SocialMedia"
-        verbose_name_plural = "SocialMedia"
-
-    def __str__(self):
-        return f"{self.user} - {self.address}"
+    class Meta(BaseModel.Meta):
+        verbose_name = "مهارت های کاربر"
+        verbose_name_plural = "مهارت های کاربر"

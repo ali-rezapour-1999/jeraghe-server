@@ -6,14 +6,12 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/auth/", include("user.urls")),
-    path("api/profile/", include("profiles.urls")),
-    path("api/blog/", include("blog.urls")),
-    path("api/base/", include("base.urls")),
+    path("api/private/auth/", include("user.urls")),
+    path("api/private/profile/", include("profiles.urls")),
+    path("api/private/blog/", include("blog.urls")),
+    path("api/private/base/", include("base.urls")),
+    path("api/private/idea/", include("idea.urls")),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

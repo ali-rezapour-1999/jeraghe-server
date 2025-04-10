@@ -1,8 +1,8 @@
 from django.utils.translation import gettext_lazy as _
-from user.middleware import get_current_user
 from django.db import models
 from base.utils import generate_unique_id
 from user.models import CustomUser
+from base.middleware import get_current_user
 
 
 class BaseModel(models.Model):
@@ -12,40 +12,67 @@ class BaseModel(models.Model):
         blank=True,
         default=generate_unique_id,
         editable=False,
+        help_text="Unique identifier for the object",
     )
-    create_by = models.ForeignKey(
-        CustomUser,
+    created_by = models.ForeignKey(
+        "user.CustomUser",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="%(class)s_create_by",
+        related_name="%(app_label)s_%(class)s_created_by",
+        help_text="User who created this object",
     )
     updated_by = models.ForeignKey(
-        CustomUser,
+        "user.CustomUser",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="%(class)s_updated_by",
+        related_name="%(app_label)s_%(class)s_updated_by",
+        help_text="User who last updated this object",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp of object creation",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp of last update",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates if the object is active or soft-deleted",
+    )
 
     class Meta:
         abstract = True
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        user = get_current_user()
+        # فقط اگه کاربر معتبر و ذخیره‌شده باشه تنظیم می‌کنیم
+        if user and hasattr(user, "pk") and user.pk:
+            if not self.pk:  # فقط موقع ساخت
+                self.created_by = user
+            self.updated_by = user
+        if not self.slug_id:
+            self.slug_id = generate_unique_id()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.__class__.__name__} ({self.slug_id})"
 
 
 class Tags(BaseModel):
     title = models.CharField(max_length=100)
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = "تگ"
         verbose_name_plural = "تگ"
 
     def save(self, *args, **kwargs):
-        user = get_current_user()
+        user = CustomUser()
         if not self.pk:
-            self.create_by = user
+            self.created_by = user
         self.updated_by = user
         super().save(*args, **kwargs)
 
@@ -64,16 +91,31 @@ class Category(BaseModel):
         verbose_name=_("دسته‌بندی مادر"),
     )
 
-    class Meta:
-        verbose_name_plural = "دسته بندی‌ها"
-        verbose_name = "دسته بندی"
+    class Meta(BaseModel.Meta):
+        verbose_name = "دسته‌بندی‌ها"
+        verbose_name_plural = "دسته‌بندی‌ها"
 
     def save(self, *args, **kwargs):
         user = get_current_user()
         if not self.pk:
-            self.create_by = user
+            self.created_by = user
         self.updated_by = user
         super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
+
+
+class Contact(BaseModel):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='contacts')
+    platform = models.CharField(max_length=20, verbose_name="شبکه اجتماعی")
+    link = models.CharField(max_length=255, verbose_name="نام کاربری یا لینک")
+    is_verified = models.BooleanField(default=False, verbose_name="تایید شده؟")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات اضافی")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_platform_display()}"
+
+    class Meta(BaseModel.Meta):
+        verbose_name = "اطلاعات تماس شبکه اجتماعی"
+        verbose_name_plural = "اطلاعات تماس شبکه‌های اجتماعی"

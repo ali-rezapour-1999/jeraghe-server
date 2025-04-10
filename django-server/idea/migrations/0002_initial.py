@@ -11,29 +11,29 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('base', '0002_initial'),
-        ('blog', '0001_initial'),
+        ('idea', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='post',
+            model_name='idea',
             name='created_by',
             field=models.ForeignKey(blank=True, help_text='User who created this object', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(app_label)s_%(class)s_created_by', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
-            model_name='post',
+            model_name='idea',
             name='tags',
-            field=models.ManyToManyField(blank=True, related_name='post_tag', to='base.tags'),
+            field=models.ManyToManyField(blank=True, related_name='idea_tags', to='base.tags'),
         ),
         migrations.AddField(
-            model_name='post',
+            model_name='idea',
             name='updated_by',
             field=models.ForeignKey(blank=True, help_text='User who last updated this object', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(app_label)s_%(class)s_updated_by', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
-            model_name='post',
+            model_name='idea',
             name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='post_user', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='ideas', to=settings.AUTH_USER_MODEL),
         ),
     ]
