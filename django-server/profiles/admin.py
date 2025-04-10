@@ -1,28 +1,6 @@
 from django.contrib import admin
 
-from .models import Profile, SocialMedia, Skill, WorkHistory
-
-
-@admin.register(SocialMedia)
-class SocialMediaAdmin(admin.ModelAdmin):
-    list_display = ("user", "title", "is_active", "created_at")
-    list_filter = ("title", "user", "is_active")
-    search_fields = ("user__email", "user__phone_number", "title", "address")
-    readonly_fields = ("created_at", "updated_at", "slug_id")
-    fieldsets = (
-        (
-            "Personal Info",
-            {
-                "fields": (
-                    "slug_id",
-                    "user",
-                    "title",
-                    "address",
-                )
-            },
-        ),
-        ("Other Info", {"fields": ("is_active", "created_at", "updated_at")}),
-    )
+from .models import Profile, Skill, WorkHistory
 
 
 @admin.register(Profile)
