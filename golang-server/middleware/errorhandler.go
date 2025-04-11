@@ -5,12 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type ExceptionTrace struct {
@@ -110,45 +108,6 @@ func ErrorHandler(c *fiber.Ctx, err error) error {
 		"error":     message,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
-}
-
-func ParseUserIDFromToken(tokenString string) (string, error) {
-	if tokenString == "" {
-		return "", nil
-	}
-
-	secretKey := os.Getenv("JWT_SECRET")
-	if secretKey == "" {
-		return "", fmt.Errorf("JWT secret key not configured")
-	}
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secretKey), nil
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to parse token: %v", err)
-	}
-
-	if !token.Valid {
-		return "", fmt.Errorf("invalid token")
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", fmt.Errorf("invalid token claims")
-	}
-
-	if userID, ok := claims["sub"].(string); ok && userID != "" {
-		return userID, nil
-	}
-	if userID, ok := claims["user_id"].(string); ok && userID != "" {
-		return userID, nil
-	}
-
-	return "", fmt.Errorf("user ID not found in token")
 }
 
 func LogExceptionTrace(db *sql.DB, trace ExceptionTrace) {

@@ -1,4 +1,4 @@
-package controller
+package service
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func GetCategroyController(c *fiber.Ctx) error {
+func GetCategroyService(c *fiber.Ctx) error {
 	ctx := context.Background()
 
 	category, err := config.RedisClient.Get(ctx, "category").Result()

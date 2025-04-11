@@ -11,7 +11,6 @@ import (
 
 func main() {
 	app := config.SetupFiber()
-
 	redisClient := config.ConnectRedis()
 	if redisClient == nil {
 		middleware.LogError(nil, fmt.Errorf("Cannot start server without Redis"))
@@ -26,6 +25,10 @@ func main() {
 	}
 	defer db.Close()
 	fmt.Println("✅ PostgreSQL is up and running!")
+	secret := config.SecretKeyLoader()
+	if secret != "" {
+		fmt.Println("✅ Env file loaded!")
+	}
 
 	routes.SetupRoutes(app, db)
 

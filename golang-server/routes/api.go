@@ -2,8 +2,8 @@ package routes
 
 import (
 	"database/sql"
-	"go-server/controller"
 	"go-server/proxys"
+	"go-server/service"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -11,7 +11,9 @@ import (
 func SetupRoutes(app *fiber.App, db *sql.DB) {
 	public := app.Group("/api/public")
 
-	public.Get("/category/", controller.GetCategroyController)
+	// base service
+	public.Get("/category/", service.GetCategroyService)
+	public.Get("/contact/", service.GetContactUserSerivce)
 
 	app.All("/api/private/*", proxys.ProxyToDjango(db))
 }
