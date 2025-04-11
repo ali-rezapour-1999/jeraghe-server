@@ -1,18 +1,39 @@
 from rest_framework import permissions, generics, response, status
-from django.core.cache import cache
-from .models import Category
-from .serializers import CategorySerializer
+from .models import Category, Contact
+from .serializers import CategorySerializer, ContactSerializer
 
 
 class CategoryView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
-    authentication_classes = []
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
 
-    def get(self, request, *args, **kwargs):
-        cached_data = cache.get("category")
-        if cached_data:
-            return response.Response(cached_data, status=status.HTTP_200_OK)
 
-        return super().get(request, *args, **kwargs)
+class ContactView(generics.CreateAPIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    serializer_class = ContactSerializer
+    queryset = Contact.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data = request.data)
+
+        try:
+            if serializer.is_valid():
+                contact = serializer.save(user=request.user)
+
+                return response.Response({
+                    "message": "اطلاعات تماس با موفقیت ثبت شد.",
+                    "data": ContactSerializer(contact).data
+                }, status=status.HTTP_201_CREATED)
+
+            return response.Response({
+                "message": "خطا در اعتبارسنجی اطلاعات تماس.",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return response.Response({
+                "message": "خطایی در هنگام ذخیره اطلاعات رخ داده است.",
+                "error": str(e)
+            } , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

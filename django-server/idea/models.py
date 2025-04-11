@@ -1,5 +1,5 @@
 from django.db import models
-from base.models import BaseModel, Category, Tags
+from base.models import BaseModel, Category, Tags, Contact
 from user.models import CustomUser
 from profiles.models import Skill
 
@@ -49,7 +49,7 @@ class Idea(BaseModel):
         Category, related_name="idea_category", on_delete=models.DO_NOTHING
     )
     repo_url = models.URLField()
-    contact_info = models.TextField(verbose_name="راه‌های ارتباطی", blank=True)
+    contact_info = models.ForeignKey(Contact, on_delete=models.DO_NOTHING)
 
     def __str__(self):
         return f"{self.title} - {self.user}"

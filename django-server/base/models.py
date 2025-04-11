@@ -107,11 +107,12 @@ class Category(BaseModel):
 
 
 class Contact(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='contacts')
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="contacts"
+    )
     platform = models.CharField(max_length=20, verbose_name="شبکه اجتماعی")
     link = models.CharField(max_length=255, verbose_name="نام کاربری یا لینک")
     is_verified = models.BooleanField(default=False, verbose_name="تایید شده؟")
-    description = models.TextField(blank=True, null=True, verbose_name="توضیحات اضافی")
 
     def __str__(self):
         return f"{self.user.username} - {self.get_platform_display()}"

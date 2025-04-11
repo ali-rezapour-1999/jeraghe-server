@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Tags, Category
+from .models import Tags, Category, Contact
 
 
 class TagsSerializer(serializers.ModelSerializer):
@@ -14,3 +14,9 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ["id", "title"]
+
+
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contact
+        fields = ["id", "user", "platform", "link", "is_verified"]
