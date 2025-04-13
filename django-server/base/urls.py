@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import Contact
+from .views import ContactCreateView
 
 urlpatterns = [
-    path("/", CategoryView.as_view(), name="category"),
+    path("create-contact/", ContactCreateView.as_view(), name="create-contact"),
 ]

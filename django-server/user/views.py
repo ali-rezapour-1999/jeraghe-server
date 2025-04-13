@@ -1,13 +1,17 @@
+from django.utils import timezone
+from datetime import timedelta
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import generics, status, throttling, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 from base.utils import generate_unique_id
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
-from .tasks import send_reset_email
+
+from user.models import TokenLog
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 
@@ -53,6 +57,12 @@ class UserRegistrationView(generics.CreateAPIView):
 
             user = serializer.save(slug_id=generate_unique_id())
             refresh = RefreshToken.for_user(user)
+            TokenLog.objects.create(
+                user=user,
+                access_token=str(refresh.access_token),
+                refresh_token=str(refresh),
+                expires_at=timezone.now() + timedelta(days=1),
+            )
             user_serializer = UserInformationSerializer(user)
 
             return Response(
@@ -91,6 +101,12 @@ class UserLoginView(generics.GenericAPIView):
 
             if user:
                 refresh = RefreshToken.for_user(user)
+                TokenLog.objects.create(
+                    user=user,
+                    access_token=str(refresh.access_token),
+                    refresh_token=str(refresh),
+                    expires_at=timezone.now() + timedelta(days=1),
+                )
                 user_serializer = UserInformationSerializer(user)
 
                 return Response(
@@ -107,6 +123,35 @@ class UserLoginView(generics.GenericAPIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+            access = serializer.validated_data["access"]
+            refresh = request.data.get("refresh")
+
+            user = self.get_user_from_token(refresh)
+
+            TokenLog.objects.create(
+                user=user,
+                access_token=access,
+                refresh_token=refresh,
+                expires_at=timezone.now() + timedelta(days=1),
+            )
+
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_user_from_token(self, token):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        refresh_obj = RefreshToken(token)
+        return refresh_obj.user
 
 
 class UpdateUserInformationView(generics.UpdateAPIView):

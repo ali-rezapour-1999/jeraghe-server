@@ -76,3 +76,4 @@ class GetPostView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "get"
+    

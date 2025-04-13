@@ -14,12 +14,16 @@ class Idea(BaseModel):
 
     collaboration_type_choices = [
         ("full_time", "تمام‌وقت"),
-        ("part_time", "پاره‌وقت"), ("consultant", "مشاوره‌ای"), ("participatory", "مشارکتی"),
+        ("part_time", "پاره‌وقت"),
+        ("consultant", "مشاوره‌ای"),
+        ("participatory", "مشارکتی"),
     ]
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ideas")
     title = models.CharField(max_length=255, null=False, blank=False)
-    image = models.ImageField(upload_to="idea/idea_images/%Y/%m/%d/", null=True, blank=True)
+    image = models.ImageField(
+        upload_to="idea/idea_images/%Y/%m/%d/", null=True, blank=True
+    )
     description = models.TextField()
     status = models.CharField(
         max_length=50,
@@ -30,7 +34,9 @@ class Idea(BaseModel):
         default="idea",
     )
     needs_collaborators = models.BooleanField(verbose_name="نیاز به همکار داری؟")
-    required_skills = models.ManyToManyField(Skill , related_name='required_skills' , verbose_name='مهارت های مورد نیاز')
+    required_skills = models.ManyToManyField(
+        Skill, related_name="required_skills", verbose_name="مهارت های مورد نیاز"
+    )
     collaboration_type = models.CharField(
         max_length=50,
         choices=collaboration_type_choices,

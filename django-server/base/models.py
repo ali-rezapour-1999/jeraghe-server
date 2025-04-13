@@ -115,7 +115,7 @@ class Contact(BaseModel):
     is_verified = models.BooleanField(default=False, verbose_name="تایید شده؟")
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_platform_display()}"
+        return f"{self.user.username} - {self.platform}"
 
     class Meta(BaseModel.Meta):
         verbose_name = "اطلاعات تماس شبکه اجتماعی"

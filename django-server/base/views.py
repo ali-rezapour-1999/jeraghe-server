@@ -9,7 +9,7 @@ class CategoryView(generics.ListAPIView):
     queryset = Category.objects.all()
 
 
-class ContactView(generics.CreateAPIView):
+class ContactCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     serializer_class = ContactSerializer
     queryset = Contact.objects.all()
