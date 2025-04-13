@@ -1,16 +1,6 @@
 from rest_framework import serializers
-from .models import Profile, WorkHistory, Skill
-from base.serializers import TagsSerializer
+from .models import Profile, WorkHistory
 from user.serializers import UserInformationSerializer
-
-
-class SkillSerializer(serializers.ModelSerializer):
-    skill_reference = TagsSerializer(read_only=True)
-    user = UserInformationSerializer(read_only=True)
-
-    class Meta:
-        model = Skill
-        fields = ["id", "user", "skill_reference", "moon", "year", "level"]
 
 
 class WorkHistorySerializer(serializers.ModelSerializer):

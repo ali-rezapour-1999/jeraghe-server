@@ -1,6 +1,8 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.db import models
 from base.utils import generate_unique_id
+from core.enum import ApplicationId
 from user.models import CustomUser
 from base.middleware import get_current_user
 
@@ -120,3 +122,29 @@ class Contact(BaseModel):
     class Meta(BaseModel.Meta):
         verbose_name = "اطلاعات تماس شبکه اجتماعی"
         verbose_name_plural = "اطلاعات تماس شبکه‌های اجتماعی"
+
+
+class Skill(BaseModel):
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="user_skills"
+    )
+    application = models.CharField(max_length=255, choices=ApplicationId.choices)
+    skill_reference = models.ForeignKey(
+        Tags, on_delete=models.CASCADE, related_name="related_skill"
+    )
+    year = models.PositiveIntegerField(null=True, blank=True)
+    moon = models.PositiveIntegerField(null=True, blank=True)
+    level = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return f"{self.user} - {self.skill_reference}"
+
+    class Meta(BaseModel.Meta):
+        verbose_name = "مهارت های کاربر"
+        verbose_name_plural = "مهارت های کاربر"
