@@ -1,19 +1,14 @@
-from rest_framework import generics, permissions, response, status
-
+from rest_framework import generics, permissions, status
 from base.responses import error_response, exception_response, success_response
-import idea
-
 from .models import Idea
 from .serializer import IdeaSerializer
 
 
 class CreateIdeaView(generics.CreateAPIView):
-    queryset = Idea.objects.all()
-    serializer_class = IdeaSerializer
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = IdeaSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return error_response(
                 message="خطا در اعتبارسنجی اطلاعات",
@@ -32,8 +27,6 @@ class CreateIdeaView(generics.CreateAPIView):
 
 
 class UpdateIdeaView(generics.UpdateAPIView):
-    queryset = Idea.objects.all()
-    serializer_class = IdeaSerializer
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "idea_update"
 
@@ -62,7 +55,7 @@ class UpdateIdeaView(generics.UpdateAPIView):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = IdeaSerializer(instance, data=request.data, partial=True)
         if not serializer.is_valid():
             return error_response(
                 message="خطا در اعتبارسنجی اطلاعات",
@@ -82,9 +75,43 @@ class UpdateIdeaView(generics.UpdateAPIView):
             return exception_response(e)
 
 
+class GetIdeaView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "get"
+
+    def get(self, request):
+        idea_id = request.data.get("id")
+        if not idea_id:
+            return error_response(
+                message="شناسه ایده ارسال نشده است.",
+                error_code="missing_id",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            instance = Idea.objects.get(id=idea_id)
+        except Idea.DoesNotExist:
+            return error_response(
+                message="ایده مورد نظر پیدا نشد.",
+                error_code="idea_not_found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if instance.user != request.user:
+            return error_response(
+                message="شما اجازه مشاهده این ایده را ندارید.",
+                error_code="permission_denied",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = IdeaSerializer(instance)
+        return success_response(
+            message="ایده با موفقیت دریافت شد.",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
 class DeleteIdeaView(generics.DestroyAPIView):
-    queryset = Idea.objects.all()
-    serializer_class = IdeaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, *args, **kwargs):
@@ -95,7 +122,6 @@ class DeleteIdeaView(generics.DestroyAPIView):
                 error_code="missing_id",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-
         try:
             instance = Idea.objects.get(id=idea_id)
         except Idea.DoesNotExist:
