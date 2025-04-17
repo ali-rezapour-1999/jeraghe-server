@@ -1,12 +1,10 @@
-from django.db.models import QuerySet
 from rest_framework import permissions, viewsets, status, generics, throttling
 from rest_framework.response import Response
 from django.core.cache import cache
-from .models import Profile, WorkHistory, Skill
+from .models import Profile, WorkHistory
 from .serializers import (
     ProfileSerializer,
     WorkHistorySerializer,
-    SkillSerializer,
 )
 
 

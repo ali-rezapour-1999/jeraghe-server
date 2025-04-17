@@ -1,7 +1,6 @@
 from rest_framework import permissions, response, status, generics, throttling
 from .models import Post
 from .serializers import PostSerializers
-from base.models import Tags
 
 
 class CreatePostView(generics.CreateAPIView):
@@ -76,4 +75,3 @@ class GetPostView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "get"
-    

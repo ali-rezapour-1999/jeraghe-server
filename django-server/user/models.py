@@ -25,8 +25,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         validators=[validate_iranian_phone_number],
     )
     username = models.CharField(max_length=100, null=False, blank=False)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)  # type: ignore
+    is_staff = models.BooleanField(default=False)  # type: ignore
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="user")

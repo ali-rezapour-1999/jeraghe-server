@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from idea import validate
 from idea.models import Idea
 from user.serializers import UserInformationSerializer
 
@@ -22,5 +23,8 @@ class IdeaSerializer(serializers.ModelSerializer):
             "tags",
             "category",
             "repo_url",
-            "contact_info"
+            "contact_info",
         ]
+
+    def validate_filed(self, data):
+        return validate.validate_idea(data)
