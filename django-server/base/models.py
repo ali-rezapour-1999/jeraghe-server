@@ -49,7 +49,7 @@ class BaseModel(models.Model):
     def save(self, *args, **kwargs):
         user = get_current_user()
         if user and hasattr(user, "pk") and user.pk:
-            if not self.pk:  # فقط موقع ساخت
+            if not self.pk:
                 self.created_by = user
             self.updated_by = user
         if not self.slug_id:
