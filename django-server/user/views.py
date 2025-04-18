@@ -43,7 +43,6 @@ class UserRegistrationView(generics.CreateAPIView):
                         message="با این نام کاربری قبلا حساب زده شده یکی دیگه رو امتحان کن",
                         error_code="username_already_exists",
                     )
-
                 user = serializer.save(slug_id=generate_unique_id())
                 refresh = RefreshToken.for_user(user)
                 user_serializer = UserInformationSerializer(user)
@@ -56,16 +55,12 @@ class UserRegistrationView(generics.CreateAPIView):
                         "user": user_serializer.data,
                     },
                 )
-            user = serializer.save(slug_id=generate_unique_id())
-            refresh = RefreshToken.for_user(user)
-            user_serializer = UserInformationSerializer(user)
         except Exception as e:
             return error_response(e)
 
 
 class UserLoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
-    serializer_class = UserLoginSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "login"
 
@@ -79,11 +74,7 @@ class UserLoginView(generics.GenericAPIView):
                     message="با این ایمیل پیدات نکردم مطمئنی درسته؟",
                     error_code="user_not_found",
                 )
-            user = authenticate(
-                request, email=request.data["email"], password=request.data["password"]
-            )
-
-            if user:
+            if user.check_password(request.data["password"]):
                 refresh = RefreshToken.for_user(user)
                 user_serializer = UserInformationSerializer(user)
                 return success_response(
