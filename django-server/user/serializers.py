@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from user import validate
 from user.models import CustomUser
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
@@ -15,6 +16,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "email": {"validators": []},
         }
 
+        def validte_register(self):
+            return validate.validate_register(self.data)
+
     def create(self, validated_data):
         user = CustomUser.objects.create(
             username=validated_data["username"],
@@ -26,8 +30,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserLoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    class Meta:
+        models = CustomUser
+        fields = ["email", "password"]
+
+    def validatetor(self):
+        return validate.validate_login(self.data)
 
 
 class UserInformationSerializer(serializers.ModelSerializer):

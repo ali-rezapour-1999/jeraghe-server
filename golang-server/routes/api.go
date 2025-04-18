@@ -1,19 +1,29 @@
 package routes
 
 import (
-	"database/sql"
+	"go-server/config"
+	"go-server/middleware"
 	"go-server/proxys"
-	"go-server/service"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, db *sql.DB) {
-	public := app.Group("/api/public")
+type Route struct {
+	Path         string
+	Method       string
+	Handler      fiber.Handler
+	RequiresAuth bool
+}
 
-	// base service
-	public.Get("/category/", service.GetCategroyService)
-	public.Get("/contact/", service.GetContactUserSerivce)
+type ProtectionRule = middleware.ProtectionRule
 
-	app.All("/api/private/*", proxys.ProxyToDjango(db))
+func SetupRoutes(app *fiber.App, db *config.TrackedDB) {
+	app.Use(middleware.DBMiddleware(db))
+
+	protectionRules := getProtectionRules()
+
+	Group := app.Group("/api/public")
+	registerRoutes(Group, Router)
+
+	app.All("/api/private/*", middleware.ConditionalAuth(protectionRules), proxys.ProxyToDjango(db))
 }

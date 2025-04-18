@@ -50,6 +50,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "base.middleware.CurrentUserMiddleware",
     "base.middleware.AppTrackerMiddleware",
+    "base.middleware.ErrorLoggingMiddleware",
 ]
 
 REST_FRAMEWORK = {

@@ -1,15 +1,16 @@
 package proxys
 
 import (
-	"database/sql"
 	"fmt"
+	"go-server/config"
 	"go-server/middleware"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/proxy"
 )
 
-func ProxyToDjango(db *sql.DB) fiber.Handler {
+func ProxyToDjango(db *config.TrackedDB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		djangoAPI := "http://127.0.0.1:8000"
 		url := fmt.Sprintf("%s%s", djangoAPI, c.OriginalURL())
@@ -31,14 +32,16 @@ func ProxyToDjango(db *sql.DB) fiber.Handler {
 			fmt.Printf("error Body: %s\n", responseBody)
 
 			trace := middleware.ExceptionTrace{
-				Timestamp:    middleware.GetTimestamp(),
-				Path:         c.Path(),
-				Method:       c.Method(),
-				StatusCode:   statusCode,
-				ErrorMessage: responseBody,
-				IPAddress:    c.IP(),
+				Timestamp:     time.Now().UTC(),
+				Path:          c.Path(),
+				Method:        c.Method(),
+				StatusCode:    statusCode,
+				ErrorMessage:  responseBody,
+				StackTrace:    "",
+				RequestBody:   string(c.Body()),
+				IPAddress:     c.IP(),
+				IsFromGateway: true,
 			}
-
 			token := c.Get("Authorization")
 			if userID, err := middleware.ParseUserIDFromToken(token); err == nil {
 				trace.UserID = userID
@@ -48,7 +51,6 @@ func ProxyToDjango(db *sql.DB) fiber.Handler {
 
 			return fiber.NewError(statusCode, responseBody)
 		}
-
 		return nil
 	}
 }

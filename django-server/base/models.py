@@ -1,4 +1,5 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db.models.query import timezone
 from django.utils.translation import gettext_lazy as _
 from django.db import models
 from .utils import generate_unique_id
@@ -143,3 +144,24 @@ class Skill(BaseModel):
     class Meta(BaseModel.Meta):
         verbose_name = "مهارت های کاربر"
         verbose_name_plural = "مهارت های کاربر"
+
+
+class ExceptionTrace(models.Model):
+    timestamp = models.DateTimeField(default=timezone.now)
+    path = models.CharField(max_length=255, null=True, blank=True)
+    method = models.CharField(max_length=10, null=True, blank=True)
+    status_code = models.IntegerField(null=True, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+    stack_trace = models.TextField(null=True, blank=True)
+    request_headers = models.JSONField(null=True, blank=True)
+    request_body = models.TextField(null=True, blank=True)
+    user_id = models.CharField(max_length=100, null=True, blank=True)
+    ip_address = models.CharField(max_length=45, null=True, blank=True)
+    is_from_gateway = models.BooleanField(default=False)  # type: ignore
+
+    class Meta:
+        db_table = "exception_traces"
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.status_code} - {self.path} - {self.timestamp}"

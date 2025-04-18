@@ -39,14 +39,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     class Meta(PermissionsMixin.Meta, AbstractBaseUser.Meta):
         verbose_name = "User"
         verbose_name_plural = "User"
-
-
-class TokenLog(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    access_token = models.TextField()
-    refresh_token = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-
-    def __str__(self):
-        return f"Token for {self.user.email}"

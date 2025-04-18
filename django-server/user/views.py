@@ -1,17 +1,14 @@
-from django.utils import timezone
-from datetime import timedelta
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import generics, status, throttling, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView
+from base.responses import error_response, success_response
 from base.utils import generate_unique_id
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
 
-from user.models import TokenLog
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 
@@ -28,54 +25,42 @@ User = get_user_model()
 
 class UserRegistrationView(generics.CreateAPIView):
     permission_classes = [AllowAny]
-    serializer_class = UserRegistrationSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "register"
 
     def create(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            username = serializer.validated_data["username"]
+        try:
+            serializer = UserRegistrationSerializer(data=request.data)
+            if serializer.is_valid():
+                if User.objects.filter(email=request.data["email"]).exists():
+                    return error_response(
+                        message="با این ایمیل قبلا حساب زده شده یکی دیگه رو امتحان کن",
+                        error_code="email_already_exists",
+                        errors=serializer.errors,
+                    )
+                if User.objects.filter(username=request.data["username"]).exists():
+                    return error_response(
+                        message="با این نام کاربری قبلا حساب زده شده یکی دیگه رو امتحان کن",
+                        error_code="username_already_exists",
+                    )
 
-            if User.objects.filter(email=email).exists():
-                return Response(
-                    {
-                        "message": "با این ایمیل قبلا حساب زدی برو لاگین کن",
-                        "error": serializer.errors,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if User.objects.filter(username=username).exists():
-                return Response(
-                    {
-                        "message": "با این نام کاربری قبلا حساب زده شده یکی دیگه رو امتحان کن",
-                        "error": serializer.errors,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                user = serializer.save(slug_id=generate_unique_id())
+                refresh = RefreshToken.for_user(user)
+                user_serializer = UserInformationSerializer(user)
 
+                return success_response(
+                    message="به جرقه خوش آومدی",
+                    data={
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                        "user": user_serializer.data,
+                    },
+                )
             user = serializer.save(slug_id=generate_unique_id())
             refresh = RefreshToken.for_user(user)
-            TokenLog.objects.create(
-                user=user,
-                access_token=str(refresh.access_token),
-                refresh_token=str(refresh),
-                expires_at=timezone.now() + timedelta(days=1),
-            )
             user_serializer = UserInformationSerializer(user)
-
-            return Response(
-                {
-                    "message": "به جرقه خوش آومدی",
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                    "user": user_serializer.data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return error_response(e)
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -85,87 +70,45 @@ class UserLoginView(generics.GenericAPIView):
     throttle_scope = "login"
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            password = serializer.validated_data["password"]
-
-            user = User.objects.filter(email=email).first()
+            user = User.objects.filter(email=request.data["email"]).first()
 
             if not user:
-                return Response(
-                    {"message": "با این ایمیل پیدات نکردم مطمئنی درسته؟"},
-                    status=status.HTTP_404_NOT_FOUND,
+                return error_response(
+                    message="با این ایمیل پیدات نکردم مطمئنی درسته؟",
+                    error_code="user_not_found",
                 )
-            user = authenticate(request, email=email, password=password)
+            user = authenticate(
+                request, email=request.data["email"], password=request.data["password"]
+            )
 
             if user:
                 refresh = RefreshToken.for_user(user)
-                TokenLog.objects.create(
-                    user=user,
-                    access_token=str(refresh.access_token),
-                    refresh_token=str(refresh),
-                    expires_at=timezone.now() + timedelta(days=1),
-                )
                 user_serializer = UserInformationSerializer(user)
-
-                return Response(
-                    {
-                        "message": "خوش برگشتی",
+                return success_response(
+                    message="خوش برگشتی",
+                    data={
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
                         "user": user_serializer.data,
                     },
-                    status=status.HTTP_200_OK,
                 )
-            return Response(
-                {"message": "رمز عبور اشتباه زدی"},
-                status=status.HTTP_401_UNAUTHORIZED,
+            return error_response(
+                message="رمز عبور اشتباه است.",
+                error_code="invalid_password",
+                errors=serializer.errors,
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class CustomTokenRefreshView(TokenRefreshView):
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-
-        try:
-            serializer.is_valid(raise_exception=True)
-            access = serializer.validated_data["access"]
-            refresh = request.data.get("refresh")
-
-            user = self.get_user_from_token(refresh)
-
-            TokenLog.objects.create(
-                user=user,
-                access_token=access,
-                refresh_token=refresh,
-                expires_at=timezone.now() + timedelta(days=1),
-            )
-
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_user_from_token(self, token):
-        from rest_framework_simplejwt.tokens import RefreshToken
-
-        refresh_obj = RefreshToken(token)
-        return refresh_obj.user
 
 
 class UpdateUserInformationView(generics.UpdateAPIView):
-    serializer_class = UserInformationSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "update"
 
-    def get_object(self):  # type: ignore
-        return User.objects.get(pk=self.request.user.pk, is_active=True)
-
     def get(self, request):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        instance = User.objects.get(pk=request.user.pk, is_active=True)
+        serializer = self.UserInformationSerializer(instance)
         return Response(
             {
                 "message": "دریافت اطلاعات",
@@ -181,12 +124,9 @@ class GetUserInformationView(generics.RetrieveAPIView):
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "get"
 
-    def get_object(self):  # type: ignore
-        return User.objects.get(pk=self.request.user.pk, is_active=True)
-
     def get(self, request):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        instance = User.objects.get(pk=request.user.pk, is_active=True)
+        serializer = UserInformationSerializer(instance)
         return Response(
             {"message": "دریافت اطلاعات", "data": serializer.data},
             status=status.HTTP_200_OK,
