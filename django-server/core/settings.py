@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import dj_database_url
 import os
 
-load_dotenv(".env.local")
+load_dotenv(".env")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,6 +17,7 @@ ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "http://golang:8080"
 ]
 
 INSTALLED_APPS = [
@@ -79,7 +80,7 @@ AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -108,6 +109,7 @@ ROOT_URLCONF = "core.urls"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "http://golang:8080"
 ]
 
 CORS_ALLOW_CREDENTIALS = True

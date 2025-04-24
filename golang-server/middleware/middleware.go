@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 	"go-server/config"
 	"net/http"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type ProtectionRule struct {

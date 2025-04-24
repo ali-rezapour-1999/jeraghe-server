@@ -9,7 +9,10 @@ from django.http import HttpRequest
 
 
 def success_response(
-    message=None, data=None, status_code=status.HTTP_200_OK, extra=None, request=None
+    message=None,
+    data=None,
+    status_code=status.HTTP_200_OK,
+    extra=None,
 ):
     response = {
         "status": "success",

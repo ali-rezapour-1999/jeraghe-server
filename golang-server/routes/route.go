@@ -43,6 +43,14 @@ func getProtectionRules() []ProtectionRule {
 			RequiresAuth: false,
 		},
 		{
+			PathPattern:  regexp.MustCompile(`^/api/private/auth/token-verify/`),
+			RequiresAuth: false,
+		},
+		{
+			PathPattern:  regexp.MustCompile(`^/api/private/auth/token-refresh/`),
+			RequiresAuth: false,
+		},
+		{
 			PathPattern:  regexp.MustCompile(`^/api/private/auth/.*`),
 			RequiresAuth: true,
 		},

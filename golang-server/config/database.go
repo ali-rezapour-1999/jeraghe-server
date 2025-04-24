@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -33,13 +34,19 @@ func (t *TrackedDB) CloseWithContext(component string) error {
 }
 
 func ConnectPostgres() *TrackedDB {
+	err := godotenv.Load(".env")
+	if err != nil {
+		fmt.Println("❌ Error loading .env file")
+		os.Exit(1)
+	}
+
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		getEnvOrDefault("DB_USER", "postgres"),
-		getEnvOrDefault("DB_PASSWORD", "admin"),
-		getEnvOrDefault("DB_HOST", "127.0.0.1"),
-		getEnvOrDefault("DB_PORT", "5432"),
-		getEnvOrDefault("DB_NAME", "jeraghe"),
-		getEnvOrDefault("DB_SSLMODE", "disable"),
+		GetEnvOrDefault("DB_USER", "postgres"),
+		GetEnvOrDefault("DB_PASSWORD", "admin"),
+		GetEnvOrDefault("DB_HOST", "127.0.0.1"),
+		GetEnvOrDefault("DB_PORT", "5432"),
+		GetEnvOrDefault("DB_NAME", "jeraghe"),
+		GetEnvOrDefault("DB_SSLMODE", "disable"),
 	)
 
 	db, err := sql.Open("postgres", dsn)
@@ -61,12 +68,4 @@ func ConnectPostgres() *TrackedDB {
 	DB = &TrackedDB{DB: db}
 	fmt.Println("✅ Secure connection to PostgreSQL established!")
 	return DB
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
 }

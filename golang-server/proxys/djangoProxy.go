@@ -10,15 +10,16 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/proxy"
 )
 
+var djangoAPI = config.GetEnvOrDefault("DJANGO_API", "http://127.0.0.1:8000")
+
 func ProxyToDjango(db *config.TrackedDB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		djangoAPI := "http://127.0.0.1:8000"
 		url := fmt.Sprintf("%s%s", djangoAPI, c.OriginalURL())
 		fmt.Println("Proxying to:", url)
 
 		c.Request().Header.Set("Content-Type", "application/json")
 		c.Request().Header.Set("User-Agent", "Fiber-Gateway")
-		c.Request().Header.Set("Referer", "http://127.0.0.1:8080")
+		c.Request().Header.Set("Referer", djangoAPI)
 
 		if err := proxy.Do(c, url); err != nil {
 			fmt.Println("Proxy error:", err)

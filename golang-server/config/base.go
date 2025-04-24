@@ -1,9 +1,10 @@
 package config
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/joho/godotenv"
-	"os"
 )
 
 func SecretKeyLoader() string {
@@ -18,4 +19,12 @@ func SecretKeyLoader() string {
 		return ""
 	}
 	return secret
+}
+
+func GetEnvOrDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }

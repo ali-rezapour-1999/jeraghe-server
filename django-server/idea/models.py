@@ -8,8 +8,11 @@ from profiles.models import Skill
 class Idea(BaseModel):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ideas")
     title = models.CharField(max_length=255, null=False, blank=False)
-    image = models.ImageField(
-        upload_to="idea/idea_images/%Y/%m/%d/", null=True, blank=True
+    log_image = models.ImageField(
+        upload_to="idea/idea_images/banner/%Y/%m/%d/", null=True, blank=True
+    )
+    banner_image = models.ImageField(
+        upload_to="idea/idea_images/logo/%Y/%m/%d/", null=True, blank=True
     )
     description = models.TextField()
     status = models.CharField(

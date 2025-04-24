@@ -5,28 +5,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.django
+    env_file:
+      - ./django-server/.env
     volumes:
       - ./django-server:/django/app
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgres://postgres:admin@host.docker.internal:5432/jeraghe
-      - REDIS_HOST=host.docker.internal
-      - REDIS_PORT=6379
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.17.255.255"
 
   golang:
     build:
       context: .
       dockerfile: Dockerfile.golang
+    env_file:
+      - ./golang-server/.env
     ports:
-      - "8080:8000"
-    environment:
-      - DJANGO_API=http://django:8000/api
-      - REDIS_HOST=host.docker.internal
-      - REDIS_PORT=6379
+      - "8080:8080"
     depends_on:
       - django
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.17.255.255"
