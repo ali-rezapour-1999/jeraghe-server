@@ -9,6 +9,7 @@ services:
       - ./django-server/.env
     volumes:
       - ./django-server:/django/app
+      - ./django-server/media:/app/media
     ports:
       - "8000:8000"
     extra_hosts:

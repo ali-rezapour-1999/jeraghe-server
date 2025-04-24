@@ -31,5 +31,5 @@ class ProfileSerializer(serializers.ModelSerializer):
             "state",
             "city",
             "address",
-            "desciption",
+            "description",
         ]

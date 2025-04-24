@@ -30,6 +30,13 @@ var Router = []Route{
 		Handler:      service.GetIdeaUserService,
 		RequiresAuth: true,
 	},
+
+	{
+		Path:         "/get-profile/",
+		Method:       "GET",
+		Handler:      service.GetProfileData,
+		RequiresAuth: true,
+	},
 }
 
 func getProtectionRules() []ProtectionRule {

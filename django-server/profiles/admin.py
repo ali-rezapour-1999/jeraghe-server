@@ -22,7 +22,7 @@ class ProfileAdmin(admin.ModelAdmin):
             },
         ),
         ("Address", {"fields": ("state", "city", "address")}),
-        ("Professional Info", {"fields": ("description_myself",)}),
+        ("Professional Info", {"fields": ("description",)}),
         ("Other Info", {"fields": ("is_active", "created_at", "updated_at")}),
     )
 
