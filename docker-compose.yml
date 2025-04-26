@@ -4,26 +4,22 @@ services:
   django:
     build:
       context: .
-      dockerfile: Dockerfile.django
+      dockerfile: ./Dockerfile.django
+    image: alirg1999/django-service:latest
     env_file:
       - ./django-server/.env
     volumes:
       - ./django-server:/django/app
       - ./django-server/media:/app/media
-    ports:
-      - "8000:8000"
-    extra_hosts:
-      - "host.docker.internal:172.17.255.255"
-
+    network_mode: "host"
+    
   golang:
     build:
       context: .
-      dockerfile: Dockerfile.golang
+      dockerfile: ./Dockerfile.golang
+    image: alirg1999/golang-service:latest
     env_file:
       - ./golang-server/.env
-    ports:
-      - "8080:8080"
+    network_mode: "host"
     depends_on:
       - django
-    extra_hosts:
-      - "host.docker.internal:172.17.255.255"
