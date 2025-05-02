@@ -16,7 +16,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     ]
     slug_id = models.CharField(max_length=255, unique=True, blank=True)
     email = models.EmailField(unique=True)
-    image = models.ImageField(upload_to="media/blog/%Y/%m/%d/", blank=True, null=True)
+    image = models.ImageField(upload_to="profile/%Y/%m/%d/", blank=True, null=True)
     phone_number = models.CharField(
         max_length=11,
         unique=True,

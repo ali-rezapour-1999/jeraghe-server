@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import  get_user_model
 from rest_framework import generics, status, throttling, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response

@@ -19,12 +19,6 @@ func registerRoutes(router fiber.Router, routes []Route) {
 		switch route.Method {
 		case "GET":
 			router.Get(route.Path, handlers...)
-		case "POST":
-			router.Post(route.Path, handlers...)
-		case "PUT":
-			router.Put(route.Path, handlers...)
-		case "DELETE":
-			router.Delete(route.Path, handlers...)
 		default:
 			router.All(route.Path, handlers...)
 		}
