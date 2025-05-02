@@ -9,7 +9,7 @@ services:
     env_file:
       - ./django-server/.env
     volumes:
-      - ./django-server/media/media/:/django/app/media
+      - ./django-server/media/:/django/app/media
     network_mode: "host"
     
   golang:

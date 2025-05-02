@@ -56,7 +56,7 @@ class UserInformationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ["id", "email", "phone_number", "slug_id", "image_url", "username"]
+        fields = ["id", "email", "phone_number", "slug_id", "image_url", "username" , 'created_at']
 
 
 class ResetPasswordSerializer(serializers.ModelSerializer):
