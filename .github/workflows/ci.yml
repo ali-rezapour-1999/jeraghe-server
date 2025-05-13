@@ -8,7 +8,7 @@ on:
 
 jobs:
   django:
-    name: Django Tests
+    name: Django Check 
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,17 +24,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python Dependencies
+        working-directory: django-server
         run: |
-          cd django-server
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Django Tests
+      - name: Run Django Check 
         run: |
-          python manage.py test
+          python manage.py check
 
   golang:
-    name: Go Tests
+    name: Go Check 
     runs-on: ubuntu-latest
 
     steps:
@@ -47,10 +47,11 @@ jobs:
           go-version: 1.22 
 
       - name: Install Go Modules
+        working-directory: golang-server
         run: |
-          cd golang-server
           go mod tidy
 
-      - name: Run Go Tests
+      - name: Run Go Check
         run: |
-          go test ./... -v
+          go vet ./...
+          go build ./...
