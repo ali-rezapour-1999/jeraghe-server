@@ -1,7 +1,6 @@
 from rest_framework import permissions, response, status, generics, throttling
 from .models import Post
 from .serializers import PostSerializers
-from base.models import Tags
 
 
 class CreatePostView(generics.CreateAPIView):

@@ -62,7 +62,7 @@ djangorestframework-simplejwt==5.5.0
     # via -r requirements.in
 idna==3.10
     # via requests
-kombu==5.5.2
+kombu==5.5.3
     # via celery
 packaging==24.2
     # via build
@@ -70,7 +70,7 @@ pillow==11.1.0
     # via -r requirements.in
 pip-tools==7.4.1
     # via -r requirements.in
-prompt-toolkit==3.0.50
+prompt-toolkit==3.0.51
     # via click-repl
 psycopg2-binary==2.9.10
     # via -r requirements.in
@@ -92,11 +92,11 @@ six==1.17.0
     # via python-dateutil
 sqlparse==0.5.3
     # via django
-typing-extensions==4.13.1
+typing-extensions==4.13.2
     # via dj-database-url
 tzdata==2025.2
     # via kombu
-urllib3==2.3.0
+urllib3==2.4.0
     # via requests
 vine==5.1.0
     # via
@@ -107,6 +107,7 @@ wcwidth==0.2.13
     # via prompt-toolkit
 wheel==0.45.1
     # via pip-tools
+gunicorn
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

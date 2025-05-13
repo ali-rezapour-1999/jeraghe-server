@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.conf import settings
+from user import validate
 from user.models import CustomUser
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
@@ -15,25 +17,46 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "email": {"validators": []},
         }
 
+        def validte_register(self):
+            return validate.validate_register(self.data)
+
     def create(self, validated_data):
-        user = CustomUser.objects.create(
-            username=validated_data["username"],
-            email=validated_data["email"],
-            password=validated_data["password"],
-            slug_id=validated_data["slug_id"],
-        )
+        password = validated_data.pop("password")
+        user = CustomUser(**validated_data)
+        user.set_password(password)
+        user.save()
         return user
 
 
 class UserLoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    class Meta:
+        models = CustomUser
+        fields = ["email", "password"]
+
+    def validatetor(self):
+        return validate.validate_login(self.data)
 
 
 class UserInformationSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    def get_image_url(self, obj):
+        if obj.image and hasattr(obj.image, "url"):
+            image_path = obj.image.url
+            if image_path.startswith(settings.MEDIA_URL):
+                image_path = image_path[len(settings.MEDIA_URL):]
+            request = self.context.get('request')
+            if request:
+                base_url = request.scheme + "://" + request.get_host()
+            else:
+                base_url = getattr(settings, "PROXY_BASE_URL", "http://localhost:8000")
+
+            return f"{base_url}{settings.MEDIA_URL}{image_path}"
+        return None
+
     class Meta:
         model = CustomUser
-        fields = ["id", "email", "phone_number", "slug_id", "image", "username"]
+        fields = ["id", "email", "phone_number", "slug_id", "image_url", "username" , 'created_at']
 
 
 class ResetPasswordSerializer(serializers.ModelSerializer):

@@ -1,15 +1,13 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from .views import (
+    ExperienceViewSet,
     ProfileUpdateView,
     ProfileGetView,
-    SkillViewSet,
-    WorkHistoryViewSet,
 )
 
 router = DefaultRouter()
-router.register(r"work-history", WorkHistoryViewSet, basename="work-history")
-router.register(r"user-skills", SkillViewSet, basename="user-skills")
+router.register(r"experience", ExperienceViewSet, basename="experience")
 
 urlpatterns = [
     path("update/", ProfileUpdateView.as_view(), name="profile-update"),

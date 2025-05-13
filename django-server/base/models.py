@@ -1,6 +1,8 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db.models.query import timezone
 from django.utils.translation import gettext_lazy as _
 from django.db import models
-from base.utils import generate_unique_id
+from .utils import generate_unique_id
 from user.models import CustomUser
 from base.middleware import get_current_user
 
@@ -15,7 +17,7 @@ class BaseModel(models.Model):
         help_text="Unique identifier for the object",
     )
     created_by = models.ForeignKey(
-        "user.CustomUser",
+        CustomUser,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -23,7 +25,7 @@ class BaseModel(models.Model):
         help_text="User who created this object",
     )
     updated_by = models.ForeignKey(
-        "user.CustomUser",
+        CustomUser,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -38,10 +40,8 @@ class BaseModel(models.Model):
         auto_now=True,
         help_text="Timestamp of last update",
     )
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Indicates if the object is active or soft-deleted",
-    )
+    is_active = models.BooleanField(default=True)  # type: ignore
+    application_id = models.CharField(max_length=255, editable=False)
 
     class Meta:
         abstract = True
@@ -49,9 +49,8 @@ class BaseModel(models.Model):
 
     def save(self, *args, **kwargs):
         user = get_current_user()
-        # فقط اگه کاربر معتبر و ذخیره‌شده باشه تنظیم می‌کنیم
         if user and hasattr(user, "pk") and user.pk:
-            if not self.pk:  # فقط موقع ساخت
+            if not self.pk:
                 self.created_by = user
             self.updated_by = user
         if not self.slug_id:
@@ -107,15 +106,62 @@ class Category(BaseModel):
 
 
 class Contact(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='contacts')
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="contacts"
+    )
     platform = models.CharField(max_length=20, verbose_name="شبکه اجتماعی")
     link = models.CharField(max_length=255, verbose_name="نام کاربری یا لینک")
-    is_verified = models.BooleanField(default=False, verbose_name="تایید شده؟")
-    description = models.TextField(blank=True, null=True, verbose_name="توضیحات اضافی")
+    is_verified = models.BooleanField(default=False, verbose_name="تایید شده؟")  # type: ignore
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_platform_display()}"
+        return f"{self.user.username} - {self.platform}"
 
     class Meta(BaseModel.Meta):
         verbose_name = "اطلاعات تماس شبکه اجتماعی"
         verbose_name_plural = "اطلاعات تماس شبکه‌های اجتماعی"
+
+
+class Skill(BaseModel):
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="user_skills"
+    )
+    skill_reference = models.ForeignKey(
+        Tags, on_delete=models.CASCADE, related_name="related_skill"
+    )
+    year = models.PositiveIntegerField(null=True, blank=True)
+    moon = models.PositiveIntegerField(null=True, blank=True)
+    level = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return f"{self.user} - {self.skill_reference}"
+
+    class Meta(BaseModel.Meta):
+        verbose_name = "مهارت های کاربر"
+        verbose_name_plural = "مهارت های کاربر"
+
+
+class ExceptionTrace(models.Model):
+    timestamp = models.DateTimeField(default=timezone.now)
+    path = models.CharField(max_length=255, null=True, blank=True)
+    method = models.CharField(max_length=10, null=True, blank=True)
+    status_code = models.IntegerField(null=True, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+    stack_trace = models.TextField(null=True, blank=True)
+    request_headers = models.JSONField(null=True, blank=True)
+    request_body = models.TextField(null=True, blank=True)
+    user_id = models.CharField(max_length=100, null=True, blank=True)
+    ip_address = models.CharField(max_length=45, null=True, blank=True)
+    is_from_gateway = models.BooleanField(default=False)  # type: ignore
+
+    class Meta:
+        db_table = "exception_traces"
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.status_code} - {self.path} - {self.timestamp}"

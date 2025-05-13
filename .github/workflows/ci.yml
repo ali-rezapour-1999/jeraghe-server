@@ -8,7 +8,7 @@ on:
 
 jobs:
   django:
-    name: Django Tests
+    name: Django Check 
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -29,12 +29,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Django Tests
+      - name: Run Django Check 
         run: |
           python manage.py migrate --noinput
 
   golang:
-    name: Go Tests
+    name: Go Check 
     runs-on: ubuntu-latest
 
     steps:
@@ -51,6 +51,6 @@ jobs:
         run: |
           go mod tidy
 
-      - name: Run Go Tests
+      - name: Run Go Check
         run: |
           go build ./...

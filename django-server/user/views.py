@@ -1,13 +1,14 @@
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import  get_user_model
 from rest_framework import generics, status, throttling, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from base.responses import error_response, success_response
 from base.utils import generate_unique_id
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
-from .tasks import send_reset_email
+
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 
@@ -24,103 +25,81 @@ User = get_user_model()
 
 class UserRegistrationView(generics.CreateAPIView):
     permission_classes = [AllowAny]
-    serializer_class = UserRegistrationSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "register"
 
     def create(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            username = serializer.validated_data["username"]
-
-            if User.objects.filter(email=email).exists():
-                return Response(
-                    {
-                        "message": "با این ایمیل قبلا حساب زدی برو لاگین کن",
-                        "error": serializer.errors,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if User.objects.filter(username=username).exists():
-                return Response(
-                    {
-                        "message": "با این نام کاربری قبلا حساب زده شده یکی دیگه رو امتحان کن",
-                        "error": serializer.errors,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            user = serializer.save(slug_id=generate_unique_id())
-            refresh = RefreshToken.for_user(user)
-            user_serializer = UserInformationSerializer(user)
-
-            return Response(
-                {
-                    "message": "به جرقه خوش آومدی",
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                    "user": user_serializer.data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserLoginView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = UserLoginSerializer
-    throttle_classes = [throttling.ScopedRateThrottle]
-    throttle_scope = "login"
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            password = serializer.validated_data["password"]
-
-            user = User.objects.filter(email=email).first()
-
-            if not user:
-                return Response(
-                    {"message": "با این ایمیل پیدات نکردم مطمئنی درسته؟"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            user = authenticate(request, email=email, password=password)
-
-            if user:
+        try:
+            serializer = UserRegistrationSerializer(data=request.data)
+            if serializer.is_valid():
+                if User.objects.filter(email=request.data["email"]).exists():
+                    return error_response(
+                        message="با این ایمیل قبلا حساب زده شده یکی دیگه رو امتحان کن",
+                        error_code="email_already_exists",
+                        errors=serializer.errors,
+                    )
+                if User.objects.filter(username=request.data["username"]).exists():
+                    return error_response(
+                        message="با این نام کاربری قبلا حساب زده شده یکی دیگه رو امتحان کن",
+                        error_code="username_already_exists",
+                    )
+                user = serializer.save(slug_id=generate_unique_id())
                 refresh = RefreshToken.for_user(user)
                 user_serializer = UserInformationSerializer(user)
 
-                return Response(
-                    {
-                        "message": "خوش برگشتی",
+                return success_response(
+                    message="به جرقه خوش آومدی",
+                    data={
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
                         "user": user_serializer.data,
                     },
-                    status=status.HTTP_200_OK,
                 )
-            return Response(
-                {"message": "رمز عبور اشتباه زدی"},
-                status=status.HTTP_401_UNAUTHORIZED,
+        except Exception as e:
+            return error_response(e)
+
+
+class UserLoginView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [throttling.ScopedRateThrottle]
+    throttle_scope = "login"
+
+    def post(self, request):
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = User.objects.filter(email=request.data["email"]).first()
+
+            if not user:
+                return error_response(
+                    message="با این ایمیل پیدات نکردم مطمئنی درسته؟",
+                    error_code="user_not_found",
+                )
+            if user.check_password(request.data["password"]):
+                refresh = RefreshToken.for_user(user)
+                user_serializer = UserInformationSerializer(user)
+                return success_response(
+                    message="خوش برگشتی",
+                    data={
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                        "user": user_serializer.data,
+                    },
+                )
+            return error_response(
+                message="رمز عبور اشتباه است.",
+                error_code="invalid_password",
+                errors=serializer.errors,
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UpdateUserInformationView(generics.UpdateAPIView):
-    serializer_class = UserInformationSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "update"
 
-    def get_object(self):  # type: ignore
-        return User.objects.get(pk=self.request.user.pk, is_active=True)
-
     def get(self, request):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        instance = User.objects.get(pk=request.user.pk, is_active=True)
+        serializer = self.UserInformationSerializer(instance)
         return Response(
             {
                 "message": "دریافت اطلاعات",
@@ -136,12 +115,9 @@ class GetUserInformationView(generics.RetrieveAPIView):
     throttle_classes = [throttling.ScopedRateThrottle]
     throttle_scope = "get"
 
-    def get_object(self):  # type: ignore
-        return User.objects.get(pk=self.request.user.pk, is_active=True)
-
     def get(self, request):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        instance = User.objects.get(pk=request.user.pk, is_active=True)
+        serializer = UserInformationSerializer(instance)
         return Response(
             {"message": "دریافت اطلاعات", "data": serializer.data},
             status=status.HTTP_200_OK,

@@ -33,6 +33,6 @@ class IdeaAdmin(admin.ModelAdmin):
         ),
         ("فایل‌ها و لینک‌ها", {"fields": ("repo_url", "related_files")}),
         ("تگ‌ها و اطلاعات تماس", {"fields": ("tags", "contact_info")}),
-        ("وضعیت ایده", {"fields": ("status", "image")}),
+        ("وضعیت ایده", {"fields": ("status", "log_image" , "banner_image")}),
     )
     filter_horizontal = ("tags",)

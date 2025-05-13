@@ -1,17 +1,18 @@
-package controller
+package service
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"go-server/config"
+	"go-server/models"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func GetCategroyController(c *fiber.Ctx) error {
+func GetCategroyService(c *fiber.Ctx) error {
 	ctx := context.Background()
 
 	category, err := config.RedisClient.Get(ctx, "category").Result()
@@ -29,17 +30,21 @@ func GetCategroyController(c *fiber.Ctx) error {
 	}
 	defer rows.Close()
 
-	var data []map[string]interface{ any }
+	var categoreis []models.Category
 	for rows.Next() {
-		var id int
-		var title string
-		if err := rows.Scan(&id, &title); err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error in processing category data"})
+		var category models.Category
+		err := rows.Scan(
+			&category.ID,
+			&category.Title,
+		)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Error scanning contact data",
+			})
 		}
-		data = append(data, map[string]interface{ any }{"id": id, "title": title})
+		categoreis = append(categoreis, category)
 	}
-
-	jsonData, err := json.Marshal(data)
+	jsonData, err := json.Marshal(categoreis)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error in convert category Data to JSON"})
 	}
@@ -48,7 +53,7 @@ func GetCategroyController(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error in save category data to Redis"})
 	}
-	fmt.Println("Category from database", data)
+	fmt.Println("Category from database", categoreis)
 
-	return c.JSON(data)
+	return c.JSON(categoreis)
 }
