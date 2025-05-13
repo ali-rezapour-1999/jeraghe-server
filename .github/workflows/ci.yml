@@ -24,8 +24,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python Dependencies
+        working-directory: django-server
         run: |
-          cd django-server
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -47,8 +47,8 @@ jobs:
           go-version: 1.22 
 
       - name: Install Go Modules
+        working-directory: golang-server
         run: |
-          cd golang-server
           go mod tidy
 
       - name: Run Go Tests
