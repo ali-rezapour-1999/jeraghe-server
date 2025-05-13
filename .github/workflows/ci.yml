@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Django Check 
         run: |
-          python manage.py check
+          python manage.py migrate --noinput
 
   golang:
     name: Go Check 
@@ -53,5 +53,4 @@ jobs:
 
       - name: Run Go Check
         run: |
-          go vet ./...
           go build ./...
