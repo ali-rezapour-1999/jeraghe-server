@@ -53,4 +53,4 @@ jobs:
 
       - name: Run Go Check
         run: |
-         go build main.go
+         go build
