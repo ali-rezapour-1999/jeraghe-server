@@ -1,13 +1,13 @@
 from rest_framework import serializers
-from .models import Profile, WorkHistory
+from .models import Profile, Experience
 from user.serializers import UserInformationSerializer
 
 
-class WorkHistorySerializer(serializers.ModelSerializer):
+class ExperienceSerializer(serializers.ModelSerializer):
     user = UserInformationSerializer(read_only=True)
 
     class Meta:
-        model = WorkHistory
+        model = Experience
         fields = [
             "user",
             "job_title",

@@ -1,10 +1,11 @@
 package service
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"go-server/config"
 	"go-server/middleware"
 	"go-server/models"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func GetProfileData(c *fiber.Ctx) error {

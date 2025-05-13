@@ -3,10 +3,10 @@ from rest_framework.response import Response
 from django.core.cache import cache
 
 from base.responses import error_response, exception_response, success_response
-from .models import Profile, WorkHistory
+from .models import Profile,Education 
 from .serializers import (
     ProfileSerializer,
-    WorkHistorySerializer,
+    ExperienceSerializer,
 )
 
 
@@ -85,14 +85,14 @@ class ProfileGetView(generics.RetrieveAPIView):
 
 
 
-class WorkHistoryViewSet(viewsets.ModelViewSet):
-    serializer_class = WorkHistorySerializer
+class ExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = ExperienceSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "uploads"
 
     def get_queryset(self):  # type:ignore
-        return WorkHistory.objects.get(user=self.request.user)
+        return Education.objects.get(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -101,7 +101,7 @@ class WorkHistoryViewSet(viewsets.ModelViewSet):
         return Response(data)
 
     def create(self, request):
-        serializer = self.get_serializer(data=request.data, partial=True)
+        serializer = ExperienceSerializer(data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save(user=self.request.user)
             cache.delete("work_history")

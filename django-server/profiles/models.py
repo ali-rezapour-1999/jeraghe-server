@@ -8,7 +8,7 @@ class Profile(BaseModel):
         CustomUser, on_delete=models.CASCADE, related_name="profil_user"
     )
     gender = models.CharField(max_length=12, blank=True, null=True)
-    age = models.PositiveIntegerField(blank=True, null=True)
+    age = models.CharField(blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -39,7 +39,7 @@ class ProfileSkill(BaseModel):
         verbose_name_plural = "مهارت های من"
 
 
-class WorkHistory(BaseModel):
+class Experience(BaseModel):
     user = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name="work_history"
     )
@@ -54,5 +54,23 @@ class WorkHistory(BaseModel):
         return f"{self.job_title} at {self.company_name}"
 
     class Meta(BaseModel.Meta):
-        verbose_name = "WorkHistory"
-        verbose_name_plural = "WorkHistory"
+        verbose_name = "Experience"
+        verbose_name_plural = "Experience"
+
+class Education(BaseModel):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="education")
+    school = models.CharField(max_length=200)
+    degree = models.CharField(max_length=100)
+    field_of_study = models.CharField(max_length=100)
+    start_year = models.IntegerField()
+    end_year = models.IntegerField(blank=True, null=True)
+    grade = models.CharField(max_length=10, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+
+    def __str__(self):
+        return f"{self.job_title} at {self.company_name}"
+
+    class Meta(BaseModel.Meta):
+        verbose_name = "Education"
+        verbose_name_plural = "Education"

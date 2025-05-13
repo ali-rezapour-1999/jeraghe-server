@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Profile, Skill, WorkHistory
+from .models import Profile, Skill,Experience
 
 
 @admin.register(Profile)
@@ -27,8 +27,8 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(WorkHistory)
-class WorkHistoryAdmin(admin.ModelAdmin):
+@admin.register(Experience)
+class ExperienceAdmin(admin.ModelAdmin):
     list_display = ("user", "job_title", "company_name", "start_date", "end_date")
     list_filter = ("company_name", "start_date", "end_date")
     search_fields = ("job_title", "company_name")

@@ -22,21 +22,3 @@ services:
     network_mode: "host"
     depends_on:
       - django
-
-  # nextjs:
-  #   build:
-  #     context: ../jeraghe-client
-  #     dockerfile: Dockerfile
-  #   image: alirg1999/nextjs-client:latest
-  #   env_file:
-  #     - ../jeraghe-client/.env.local
-  #   network_mode: "host"
-  #   volumes:
-  #     - ./jeraghe-client:/app
-  #     - /app/node_modules 
-  #   environment:
-  #     - NODE_ENV=development
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - django
-  #     - golang
