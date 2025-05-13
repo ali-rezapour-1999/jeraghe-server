@@ -25,6 +25,7 @@ jobs:
 
       - name: Install Python Dependencies
         run: |
+          cd django-server
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -47,6 +48,7 @@ jobs:
 
       - name: Install Go Modules
         run: |
+          cd golang-server
           go mod tidy
 
       - name: Run Go Tests
