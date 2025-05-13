@@ -30,6 +30,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Django Check 
+        working-directory: golang-server
         run: |
           python manage.py migrate --noinput
 
@@ -52,5 +53,6 @@ jobs:
           go mod tidy
 
       - name: Run Go Check
+        working-directory: golang-server
         run: |
          go build
