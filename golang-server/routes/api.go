@@ -1,11 +1,11 @@
 package routes
 
 import (
-	"go-server/config"
 	"go-server/middleware"
 	"go-server/proxys"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type Route struct {
@@ -17,7 +17,7 @@ type Route struct {
 
 type ProtectionRule = middleware.ProtectionRule
 
-func SetupRoutes(app *fiber.App, db *config.TrackedDB) {
+func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Use(middleware.DBMiddleware(db))
 
 	protectionRules := getProtectionRules()

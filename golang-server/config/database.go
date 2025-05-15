@@ -10,9 +10,15 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-var DB *TrackedDB
+var (
+	DB     *TrackedDB
+	GormDB *gorm.DB
+)
 
 type TrackedDB struct {
 	*sql.DB
@@ -68,4 +74,21 @@ func ConnectPostgres() *TrackedDB {
 	DB = &TrackedDB{DB: db}
 	fmt.Println("✅ Secure connection to PostgreSQL established!")
 	return DB
+}
+
+func ConnectGORM() *gorm.DB {
+	sqlDB := ConnectPostgres()
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB.DB,
+	}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Error),
+	})
+	if err != nil {
+		log.Fatalf("❌ failed to initialize GORM: %v", err)
+	}
+
+	GormDB = gormDB
+	fmt.Println("✅ Secure connection to PostgreSQL with GORM established!")
+	return GormDB
 }

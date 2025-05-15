@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"go-server/config"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 type ProtectionRule struct {
@@ -18,13 +20,9 @@ type ProtectionRule struct {
 	RequiresAuth    bool
 }
 
-type DBWrapper struct {
-	DB *config.TrackedDB
-}
-
-func DBMiddleware(db *config.TrackedDB) fiber.Handler {
+func DBMiddleware(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		c.Locals("db", &DBWrapper{DB: db})
+		c.Locals("db", db)
 		return c.Next()
 	}
 }
@@ -113,8 +111,11 @@ func ParseUserIDFromToken(tokenString string) (string, error) {
 func JWTMiddleware(c *fiber.Ctx) error {
 	authenticated, id, err := IsAuthenticated(c)
 	if err != nil {
-		if db, ok := c.Locals("db").(*config.TrackedDB); ok && db != nil {
-			LogError(db, fmt.Errorf("خطای احراز هویت در %s %s: %v", c.Method(), c.Path(), err), c)
+		db, ok := c.Locals("db").(*gorm.DB)
+		if ok && db != nil {
+			LogSystemError(db, err, fmt.Sprintf("Authentication failed for %s %s", c.Method(), c.Path()))
+		} else if !ok || db == nil {
+			db.Logger.Error(context.Background(), "Database connection not available for logging authentication error: %v", err)
 		}
 
 		if authErr, ok := err.(*AuthError); ok {

@@ -1,79 +1,45 @@
 package service
 
 import (
-	"go-server/config"
+	"context"
 	"go-server/middleware"
 	"go-server/models"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 func GetUserIdeaListService(c *fiber.Ctx) error {
-	validate, userID, err := middleware.IsAuthenticated(c)
-	if !validate || err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	db, ok := c.Locals("db").(*gorm.DB)
+	if !ok || db == nil {
+		middleware.LogSystemError(db, nil, "Database connection unavailable in GetUserIdeaListService")
+		return fiber.NewError(http.StatusInternalServerError, "خطا در دریافت داده‌های ایده هام از پایگاه داده")
 	}
 
-	query := `
-SELECT ii.id,
-       ii.title,
-       ii.slug_id,
-       ii.is_active,
-       ii.image,
-       ii.description,
-       ii.status,
-       ii.needs_collaborators,
-       ii.collaboration_type,
-       ii.related_files,
-       ii.repo_url,
-       ii.created_at,
-       bc.title,
-       bc2.link,
-       bc2.platform
-	FROM idea_idea ii
-         left join public.base_category bc on ii.category_id = bc.id
-         left join public.base_contact bc2 on ii.contact_info_id = bc2.id
-	WHERE ii.is_active = true
-  	AND ii.user_id = $1
-	`
+	ctx := context.Background()
 
-	rows, err := config.DB.Query(query, userID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	authenticated, userID, err := middleware.IsAuthenticated(c)
+	if !authenticated || err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
-			"message": "خطا در دریافت اطلاعات ایده از پایگاه داده",
-			"details": err.Error(),
+			"message": "احراز هویت ناموفق بود",
 		})
 	}
 
-	var ideaPost []models.IdeaPost
-	for rows.Next() {
-		var idea models.IdeaPost
-		err := rows.Scan(
-			&idea.ID,
-			&idea.Title,
-			&idea.SlugID,
-			&idea.IsActive,
-			&idea.Image,
-			&idea.Description,
-			&idea.Status,
-			&idea.NeedsCollaborators,
-			&idea.CollaborationType,
-			&idea.RelatedFiles,
-			&idea.RepoURL,
-			&idea.CreatedAt,
-			&idea.Category.Title,
-			&idea.ContactInfo.Link,
-			&idea.ContactInfo.Platform,
-		)
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Error scanning contact data",
-			})
-		}
-		ideaPost = append(ideaPost, idea)
+	var ideas []models.IdeaPost
+	if err := db.WithContext(ctx).
+		Preload("Category").
+		Preload("Contact").
+		Where("is_active = ? AND user_id = ?", true, userID).
+		Find(&ideas).Error; err != nil {
+		middleware.LogSystemError(db, err, "Failed to fetch ideas from database")
+		return fiber.NewError(http.StatusInternalServerError, "خطا در دریافت داده‌های ایده هام از پایگاه داده")
 	}
 
-	return c.Status(http.StatusOK).JSON(ideaPost)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "اطلاعات ایده با موفقیت دریافت شد",
+		"data":    ideas,
+	})
 }

@@ -4,11 +4,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type Category struct {
+type ProfileSkills struct {
 	gorm.Model
 	Title string `gorm:"type:varchar(255);not null" json:"title"`
 }
 
-func (Category) TableName() string {
-	return "base_category"
+func (*ProfileSkills) TableName() string {
+	return "profiles_profileskill"
 }

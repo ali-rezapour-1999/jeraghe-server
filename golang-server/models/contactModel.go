@@ -1,11 +1,15 @@
 package models
 
+import (
+	"gorm.io/gorm"
+)
+
 type Contact struct {
-	ID         int    `json:"id"`
-	UserID     int    `json:"user_id"`
-	SlugID     string `json:"slug_id"`
-	IsActive   bool   `json:"is_active"`
-	Platform   string `json:"platform"`
-	Link       string `json:"link"`
-	IsVerified bool   `json:"is_verified"`
+	gorm.Model
+	UserID     uint   `gorm:"not null;index" json:"user_id"` // Foreign key to a User model
+	SlugID     string `gorm:"type:varchar(100);unique;not null" json:"slug_id"`
+	IsActive   bool   `gorm:"default:true" json:"is_active"`
+	Platform   string `gorm:"type:varchar(50);not null" json:"platform"`
+	Link       string `gorm:"type:varchar(255);not null" json:"link"`
+	IsVerified bool   `gorm:"default:false" json:"is_verified"`
 }

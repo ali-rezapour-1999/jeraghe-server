@@ -2,25 +2,26 @@ package proxys
 
 import (
 	"bytes"
-	"fmt"
+	"context"
 	"go-server/config"
 	"go-server/middleware"
 	"io"
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 var djangoAPI = config.GetEnvOrDefault("DJANGO_API", "http://127.0.0.1:8000")
 
-func ProxyToDjango(db *config.TrackedDB) fiber.Handler {
+func ProxyToDjango(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx := context.Background()
 		isMediaRequest := c.Method() == fiber.MethodGet && strings.HasPrefix(c.Path(), "/media/")
-		targetURL := fmt.Sprintf("%s%s", djangoAPI, c.OriginalURL())
-		fmt.Println("Proxying to:", targetURL)
+		targetURL := djangoAPI + c.OriginalURL()
+		db.Logger.Info(ctx, "Proxying to: %s", targetURL)
 
 		body := c.Body()
 		if len(body) == 0 && (c.Method() == fiber.MethodPost || c.Method() == fiber.MethodPut || c.Method() == fiber.MethodPatch) {
@@ -29,16 +30,15 @@ func ProxyToDjango(db *config.TrackedDB) fiber.Handler {
 
 		httpReq, err := http.NewRequest(c.Method(), targetURL, bytes.NewReader(body))
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Failed to create proxy request: %v", err))
+			middleware.LogSystemError(db, err, "Failed to create proxy request")
+			return fiber.NewError(fiber.StatusBadRequest, "Failed to create proxy request")
 		}
 
 		httpReq.Header.Set("User-Agent", "Fiber-Gateway")
 		httpReq.Header.Set("Referer", djangoAPI)
-
 		if !isMediaRequest {
 			httpReq.Header.Set("Content-Type", c.Get("Content-Type", "application/json"))
 		}
-
 		if token := c.Get("Authorization"); token != "" {
 			httpReq.Header.Set("Authorization", token)
 		}
@@ -46,17 +46,22 @@ func ProxyToDjango(db *config.TrackedDB) fiber.Handler {
 		client := &http.Client{}
 		resp, err := client.Do(httpReq)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadGateway, fmt.Sprintf("Proxy request failed: %v", err))
+			middleware.LogSystemError(db, err, "Proxy request failed")
+			return fiber.NewError(fiber.StatusBadGateway, "Proxy request failed")
 		}
 		defer resp.Body.Close()
 
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
+			middleware.LogSystemError(db, err, "Failed to read response from Django")
 			return fiber.NewError(fiber.StatusInternalServerError, "Failed to read response from Django")
 		}
 
+		middleware.LogForwardedRequest(c, db, resp.StatusCode, string(respBody))
+
 		if isMediaRequest {
 			if strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
+				middleware.LogSystemError(db, nil, "Invalid media response: JSON received instead of image")
 				return fiber.NewError(fiber.StatusInternalServerError, "Invalid media response: JSON received instead of image")
 			}
 
@@ -86,28 +91,6 @@ func ProxyToDjango(db *config.TrackedDB) fiber.Handler {
 			}
 		}
 
-		c.Status(resp.StatusCode)
-		c.Send(respBody)
-
-		if resp.StatusCode >= 400 && !isMediaRequest {
-			trace := middleware.ExceptionTrace{
-				Timestamp:     time.Now().UTC(),
-				Path:          c.Path(),
-				Method:        c.Method(),
-				StatusCode:    resp.StatusCode,
-				ErrorMessage:  string(respBody),
-				StackTrace:    "",
-				RequestBody:   string(body),
-				IPAddress:     c.IP(),
-				IsFromGateway: true,
-			}
-			token := c.Get("Authorization")
-			if userID, err := middleware.ParseUserIDFromToken(token); err == nil {
-				trace.UserID = userID
-			}
-			go middleware.LogExceptionTrace(db, trace)
-		}
-
-		return nil
+		return c.Status(resp.StatusCode).Send(respBody)
 	}
 }

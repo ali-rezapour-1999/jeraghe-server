@@ -1,53 +1,43 @@
 package service
 
 import (
-	"go-server/config"
+	"context"
 	"go-server/middleware"
 	"go-server/models"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-func GetContactUserSerivce(c *fiber.Ctx) error {
-	validate, userID, err := middleware.IsAuthenticated(c)
-	if !validate || err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+func GetContactUserService(c *fiber.Ctx) error {
+	db, ok := c.Locals("db").(*gorm.DB)
+	if !ok || db == nil {
+		middleware.LogSystemError(db, nil, "Database connection unavailable in GetContactUserService")
+		return fiber.NewError(http.StatusInternalServerError, "خطا در دریافت داده‌های ارتباط از پایگاه داده")
 	}
 
-	query := `
-		SELECT id, user_id, slug_id, is_active, platform, link, is_verified
-		FROM base_contact
-		WHERE is_verified = true AND is_active = true AND user_id = $1
-	`
+	ctx := context.Background()
 
-	rows, err := config.DB.Query(query, userID)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error fetching contacts from database",
+	authenticated, userID, err := middleware.IsAuthenticated(c)
+	if !authenticated || err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "احراز هویت ناموفق بود",
+			"data":    nil,
+			"error":   err.Error(),
 		})
 	}
-	defer rows.Close()
 
 	var contacts []models.Contact
-	for rows.Next() {
-		var contact models.Contact
-		err := rows.Scan(
-			&contact.ID,
-			&contact.UserID,
-			&contact.SlugID,
-			&contact.IsActive,
-			&contact.Platform,
-			&contact.Link,
-			&contact.IsVerified,
-		)
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Error scanning contact data",
-			})
-		}
-		contacts = append(contacts, contact)
+	if err := db.WithContext(ctx).Where("is_verified = ? AND is_active = ? AND user_id = ?", true, true, userID).Find(&contacts).Error; err != nil {
+		middleware.LogSystemError(db, err, "Failed to fetch contacts from database")
+		return fiber.NewError(http.StatusInternalServerError, "خطا در دریافت داده‌های ارتباط از پایگاه داده")
 	}
 
-	return c.Status(http.StatusOK).JSON(contacts)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "اطلاعات ایده با موفقیت دریافت شد",
+		"data":    contacts,
+	})
 }

@@ -4,217 +4,167 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go-server/config"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type ExceptionTrace struct {
-	Timestamp      time.Time
-	Path           string
-	Method         string
-	StatusCode     int
-	ErrorMessage   string
-	StackTrace     string
-	RequestHeaders map[string]string
-	RequestBody    string
-	UserID         string
-	IPAddress      string
-	IsFromGateway  bool
+	ID             uint      `gorm:"primaryKey"`
+	Timestamp      time.Time `gorm:"type:timestamp with time zone;default:current_timestamp"`
+	Path           string    `gorm:"type:varchar(255)"`
+	Method         string    `gorm:"type:varchar(10)"`
+	StatusCode     int       `gorm:"type:integer"`
+	ErrorMessage   string    `gorm:"type:text"`
+	StackTrace     string    `gorm:"type:text"`
+	RequestHeaders string    `gorm:"type:jsonb;default:'{}'"`
+	RequestBody    string    `gorm:"type:text"`
+	UserID         string    `gorm:"type:varchar(100)"`
+	IPAddress      string    `gorm:"type:varchar(45)"`
+	IsFromGateway  bool      `gorm:"type:boolean;default:true"`
 }
 
-func SetupErrorMiddleware(app *fiber.App, db *config.TrackedDB) {
-	err := createExceptionTable(db)
-	if err != nil {
-		fmt.Printf("Warning: Failed to create exception_traces table: %v\n", err)
-	}
-
+func SetupErrorMiddleware(app *fiber.App, db *gorm.DB) {
 	app.Use(func(c *fiber.Ctx) error {
 		start := time.Now()
 		err := c.Next()
 		latency := time.Since(start)
-
-		fmt.Printf("Request: %s %s - Status: %d - Latency: %v\n",
-			c.Method(), c.Path(), c.Response().StatusCode(), latency)
-
-		headers := make(map[string]string)
-		for key, values := range c.GetReqHeaders() {
-			headers[key] = strings.Join(values, ",")
-		}
-
 		statusCode := c.Response().StatusCode()
+
+		db.Logger.Info(context.Background(), "Request: %s %s - Status: %d - Latency: %v",
+			c.Method(), c.Path(), statusCode, latency)
+
 		if statusCode >= 400 {
-			trace := ExceptionTrace{
-				Timestamp:      time.Now().UTC(),
-				Path:           c.Path(),
-				Method:         c.Method(),
-				StackTrace:     fmt.Sprintf("%+v", err),
-				StatusCode:     statusCode,
-				ErrorMessage:   string(c.Response().Body()),
-				RequestHeaders: headers,
-				RequestBody:    string(c.Body()),
-				IPAddress:      c.IP(),
-				IsFromGateway:  true,
-			}
-
-			token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
-			if userID, parseErr := ParseUserIDFromToken(token); parseErr == nil {
-				trace.UserID = userID
-			} else {
-				fmt.Printf("Warning: Failed to parse user ID from token: %v\n", parseErr)
-			}
-
-			go LogExceptionTrace(db, trace)
+			trace := buildExceptionTrace(c, db, err, string(c.Response().Body()), statusCode)
+			logTraceAsync(db, trace)
+			return c.Status(statusCode).JSON(fiber.Map{
+				"status":  "error",
+				"message": string(c.Response().Body()),
+				"details": err.Error(),
+			})
 		}
 
 		return err
 	})
 }
 
-func createExceptionTable(db *config.TrackedDB) error {
-	if db == nil {
-		return fmt.Errorf("database connection is nil")
-	}
+func LogForwardedRequest(c *fiber.Ctx, db *gorm.DB, djangoResponseStatus int, djangoResponseBody string) {
+	trace := buildExceptionTrace(c, db, nil, "Forwarded to Django", djangoResponseStatus)
+	trace.ErrorMessage = fmt.Sprintf("Forwarded to Django - Response: %s", djangoResponseBody)
+	logTraceAsync(db, trace)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	query := `
-		CREATE TABLE IF NOT EXISTS exception_traces (
-			id SERIAL PRIMARY KEY,
-			timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-			path VARCHAR(255) NOT NULL,
-			method VARCHAR(10) NOT NULL,
-			status_code INT NOT NULL,
-			error_message TEXT NOT NULL,
-			stack_trace TEXT,
-			request_headers JSONB,
-			request_body TEXT,
-			user_id VARCHAR(100),
-			ip_address VARCHAR(45),
-			is_from_gateway BOOLEAN DEFAULT TRUE
-		)`
-	_, err := db.ExecContext(ctx, query)
-	return err
+	db.Logger.Info(context.Background(), "Forwarded to Django: %s %s - Status: %d",
+		c.Method(), c.Path(), djangoResponseStatus)
 }
 
-func ErrorHandler(c *fiber.Ctx, err error) error {
-	code := fiber.StatusInternalServerError
-	message := "Internal Server Error"
+func LogSystemError(db *gorm.DB, err error, message string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	if e, ok := err.(*fiber.Error); ok {
-		code = e.Code
-		message = e.Message
-	} else if authErr, ok := err.(*AuthError); ok {
-		code = authErr.Code
-		message = authErr.Message
+	trace := ExceptionTrace{
+		Timestamp:      time.Now().UTC(),
+		Path:           "N/A",
+		Method:         "N/A",
+		StatusCode:     0,
+		ErrorMessage:   fmt.Sprintf("%s: %v", message, err),
+		StackTrace:     fmt.Sprintf("%+v", err),
+		RequestHeaders: "{}",
+		IsFromGateway:  false,
 	}
 
-	db := c.Locals("db").(*config.TrackedDB)
-	if db != nil {
-		trace := ExceptionTrace{
-			Timestamp:     time.Now().UTC(),
-			Path:          c.Path(),
-			Method:        c.Method(),
-			StatusCode:    code,
-			ErrorMessage:  message,
-			StackTrace:    fmt.Sprintf("%+v", err),
-			RequestBody:   string(c.Body()),
-			IPAddress:     c.IP(),
-			IsFromGateway: true,
+	if err := db.WithContext(ctx).Create(&trace).Error; err != nil {
+		db.Logger.Error(ctx, "Failed to log system error: %v", err)
+	}
+
+	db.Logger.Error(ctx, "%s: %v", message, err)
+}
+
+func buildExceptionTrace(c *fiber.Ctx, db *gorm.DB, err error, errorMessage string, statusCode int) ExceptionTrace {
+	ctx := context.Background()
+
+	trace := ExceptionTrace{
+		Timestamp:      time.Now().UTC(),
+		Path:           "N/A",
+		Method:         "N/A",
+		StatusCode:     statusCode,
+		ErrorMessage:   errorMessage,
+		StackTrace:     fmt.Sprintf("%+v", err),
+		RequestHeaders: "{}",
+		IPAddress:      "N/A",
+		IsFromGateway:  true,
+	}
+
+	if c != nil {
+		trace.Path = c.Path()
+		trace.Method = c.Method()
+		trace.IPAddress = c.IP()
+
+		body := string(c.Body())
+		if len(body) > 1024 {
+			body = "Request body too large"
 		}
+		trace.RequestBody = body
 
 		headers := make(map[string]string)
 		for key, values := range c.GetReqHeaders() {
-			headers[key] = strings.Join(values, ",")
+			if !strings.EqualFold(key, "Authorization") {
+				headers[key] = strings.Join(values, ",")
+			}
 		}
-		trace.RequestHeaders = headers
+		headersJSON, err := json.Marshal(headers)
+		if err != nil {
+			db.Logger.Warn(ctx, "Failed to marshal request headers: %v", err)
+			trace.RequestHeaders = "{}" // Fallback to valid JSON
+		} else {
+			trace.RequestHeaders = string(headersJSON)
+		}
 
 		token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
 		if userID, parseErr := ParseUserIDFromToken(token); parseErr == nil {
 			trace.UserID = userID
+		} else if parseErr != nil {
+			db.Logger.Warn(ctx, "Failed to parse user ID from token: %v", parseErr)
+		}
+	}
+
+	return trace
+}
+
+func logTraceAsync(db *gorm.DB, trace ExceptionTrace) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := db.Exec("SELECT 1").Error; err != nil {
+			db.Logger.Error(ctx, "Database connection lost: %v", err)
+			return
 		}
 
-		go LogExceptionTrace(db, trace)
-	}
-	return c.Status(code).JSON(fiber.Map{
-		"status":    "error",
-		"message":   message,
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	})
+		if err := db.WithContext(ctx).Create(&trace).Error; err != nil {
+			db.Logger.Error(ctx, "Failed to log exception trace: %v", err)
+		}
+	}()
 }
 
-func LogExceptionTrace(db *config.TrackedDB, trace ExceptionTrace) {
-	if db == nil {
-		fmt.Println("Warning: Database connection not available for exception logging")
-		return
-	}
-
-	headersJSON, _ := json.Marshal(trace.RequestHeaders)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	query := `
-		INSERT INTO exception_traces (
-			timestamp, path, method, status_code, error_message, 
-			stack_trace, request_headers, request_body, user_id, ip_address, is_from_gateway
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`
-	_, err := db.ExecContext(ctx, query,
-		trace.Timestamp, trace.Path, trace.Method, trace.StatusCode, trace.ErrorMessage,
-		trace.StackTrace, headersJSON, trace.RequestBody, trace.UserID, trace.IPAddress, trace.IsFromGateway,
-	)
-	if err != nil {
-		fmt.Printf("Failed to log exception trace: %v\n", err)
+func LogStartupInfo(db *gorm.DB, messages ...string) {
+	ctx := context.Background()
+	for _, msg := range messages {
+		if db != nil {
+			db.Logger.Info(ctx, "✅ %s", msg)
+		} else {
+			fmt.Printf("✅ %s\n", msg)
+		}
 	}
 }
 
-func LogError(db *config.TrackedDB, err error, c *fiber.Ctx) {
-	trace := ExceptionTrace{
-		Timestamp:     time.Now().UTC(),
-		ErrorMessage:  err.Error(),
-		StackTrace:    fmt.Sprintf("%+v", err),
-		IsFromGateway: true,
+func LogStartupError(db *gorm.DB, err error, message string) {
+	if db != nil {
+		LogSystemError(db, err, message)
+	} else {
+		fmt.Printf("❌ %s: %v\n", message, err)
 	}
-
-	if c != nil {
-		trace.Method = c.Method()
-		trace.Path = c.Path()
-		trace.StatusCode = c.Response().StatusCode()
-		trace.RequestBody = string(c.Body())
-		trace.IPAddress = c.IP()
-	}
-
-	if db == nil {
-		fmt.Printf("❌ [Fallback] %s - %s\n", trace.ErrorMessage, trace.StackTrace)
-		return
-	}
-
-	if err := createExceptionTable(db); err != nil {
-		fmt.Printf("Warning: Failed to create exception_traces table: %v\n", err)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	headersJSON, _ := json.Marshal(trace.RequestHeaders)
-
-	query := `
-		INSERT INTO exception_traces (
-			timestamp, error_message, stack_trace, is_from_gateway, method, path, 
-			status_code, request_body, request_headers, user_id, ip_address
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`
-	_, err = db.ExecContext(ctx, query,
-		trace.Timestamp, trace.ErrorMessage, trace.StackTrace, trace.IsFromGateway,
-		trace.Method, trace.Path, trace.StatusCode, trace.RequestBody,
-		headersJSON, trace.UserID, trace.IPAddress,
-	)
-	if err != nil {
-		fmt.Printf("Failed to log error to database: %v\n", err)
-	}
+	os.Exit(1)
 }

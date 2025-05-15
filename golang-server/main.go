@@ -5,36 +5,43 @@ import (
 	"go-server/config"
 	"go-server/middleware"
 	"go-server/routes"
-	"log"
 	"os"
 )
 
+const AppVersion = "1.0.0"
+
 func main() {
 	app := config.SetupFiber()
+	middleware.LogStartupInfo(nil, fmt.Sprintf("Starting application v%s in %s environment", AppVersion, config.GetEnvOrDefault("ENV", "development")))
+
 	redisClient := config.ConnectRedis()
 	if redisClient == nil {
-		middleware.LogError(nil, fmt.Errorf("Cannot start server without Redis"), nil)
-		log.Fatal("Cannot start server without Redis")
+		middleware.LogStartupError(nil, nil, "Cannot start server without Redis")
 	}
-	fmt.Println("✅ Redis is up and running!")
+	middleware.LogStartupInfo(nil, "Redis is up and running!")
 
-	db := config.ConnectPostgres()
-	if db == nil {
-		middleware.LogError(nil, fmt.Errorf("Cannot start server without PostgreSQL"), nil)
-		log.Fatal("Cannot start server without PostgresSQL")
+	gormDB := config.ConnectGORM()
+	if gormDB == nil {
+		middleware.LogStartupError(nil, nil, "Cannot start server without PostgreSQL")
 	}
-	defer db.Close()
-	fmt.Println("✅ PostgresSQL is up and running!")
+	middleware.LogStartupInfo(gormDB, "PostgreSQL with GORM is up and running!")
+
 	secret := config.SecretKeyLoader()
 	if secret != "" {
-		fmt.Println("✅ Env file loaded!")
+		middleware.LogStartupInfo(gormDB, "Environment variables loaded!")
 	}
-	routes.SetupRoutes(app, db)
-	middleware.SetupErrorMiddleware(app, db)
+
+	routes.SetupRoutes(app, gormDB)
+	app.Use(middleware.DBMiddleware(gormDB))
+	middleware.SetupErrorMiddleware(app, gormDB)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	fmt.Printf("🚀 Server is running on :%s\n", port)
-	log.Fatal(app.Listen(":" + port))
+	middleware.LogStartupInfo(gormDB, fmt.Sprintf("Server is running on :%s", port))
+
+	if err := app.Listen(":" + port); err != nil {
+		middleware.LogStartupError(gormDB, err, "Failed to start server")
+	}
 }

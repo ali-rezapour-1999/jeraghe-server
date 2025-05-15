@@ -9,13 +9,13 @@ var Router = []Route{
 	{
 		Path:         "/category/",
 		Method:       "GET",
-		Handler:      service.GetCategroyService,
+		Handler:      service.GetCategoryService,
 		RequiresAuth: false,
 	},
 	{
 		Path:         "/contact/",
 		Method:       "GET",
-		Handler:      service.GetContactUserSerivce,
+		Handler:      service.GetContactUserService,
 		RequiresAuth: true,
 	},
 	{
@@ -30,11 +30,16 @@ var Router = []Route{
 		Handler:      service.GetIdeaUserService,
 		RequiresAuth: true,
 	},
-
 	{
 		Path:         "/get-profile/",
 		Method:       "GET",
 		Handler:      service.GetProfileData,
+		RequiresAuth: true,
+	},
+	{
+		Path:         "/get-profile-skill/",
+		Method:       "GET",
+		Handler:      service.GetProfileSkill,
 		RequiresAuth: true,
 	},
 }
