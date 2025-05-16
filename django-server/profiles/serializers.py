@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, Experience
+from .models import Profile, Experience, ProfileSkill, SkillItems
 from user.serializers import UserInformationSerializer
 
 
@@ -33,3 +33,15 @@ class ProfileSerializer(serializers.ModelSerializer):
             "address",
             "description",
         ]
+
+
+class ProfileSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfileSkill
+        fields = ["id", "category"]
+
+
+class SkillItemsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SkillItems
+        fields = ["id", "title", "level"]

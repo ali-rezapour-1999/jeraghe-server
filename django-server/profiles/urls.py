@@ -4,10 +4,13 @@ from .views import (
     ExperienceViewSet,
     ProfileUpdateView,
     ProfileGetView,
+    ProfileSkillViewSet
 )
 
 router = DefaultRouter()
 router.register(r"experience", ExperienceViewSet, basename="experience")
+router.register(r"profile-skill", ProfileSkillViewSet,
+                basename="profile-skill")
 
 urlpatterns = [
     path("update/", ProfileUpdateView.as_view(), name="profile-update"),

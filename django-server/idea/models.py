@@ -2,11 +2,11 @@ from django.db import models
 from base.models import BaseModel, Category, Tags, Contact
 from idea.enum import CollaborationType, StatusIdea
 from user.models import CustomUser
-from profiles.models import Skill
 
 
 class Idea(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ideas")
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="ideas")
     title = models.CharField(max_length=255, null=False, blank=False)
     log_image = models.ImageField(
         upload_to="idea/idea_images/banner/%Y/%m/%d/", null=True, blank=True
@@ -23,9 +23,10 @@ class Idea(BaseModel):
         null=False,
         default="idea",
     )
-    needs_collaborators = models.BooleanField(verbose_name="نیاز به همکار داری؟")
+    needs_collaborators = models.BooleanField(
+        verbose_name="نیاز به همکار داری؟")
     required_skills = models.ManyToManyField(
-        Skill, related_name="required_skills", verbose_name="مهارت های مورد نیاز"
+        Tags, related_name="required_skills", verbose_name="مهارت های مورد نیاز"
     )
     collaboration_type = models.CharField(
         max_length=50,

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"go-server/middleware"
 	"go-server/models"
 	"net/http"
@@ -33,6 +34,12 @@ func GetProfileSkill(c *fiber.Ctx) error {
 	if err := db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		First(&profileSkill).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(fiber.Map{
+				"status": "success",
+				"data":   nil,
+			})
+		}
 		middleware.LogSystemError(db, err, "Failed to fetch profile skills from database")
 		return fiber.NewError(http.StatusInternalServerError, "خطا در دریافت داده‌های پروفایل از پایگاه داده")
 	}

@@ -36,5 +36,6 @@ def validate_tags(value, serializerr):
     if value is None:
         return []
     if not isinstance(value, list):
-        raise serializerr.ValidationError("تگ‌ها باید به صورت لیست ارسال شوند.")
+        raise serializerr.ValidationError(
+            "تگ‌ها باید به صورت لیست ارسال شوند.")
     return value

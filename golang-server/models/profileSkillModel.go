@@ -6,7 +6,8 @@ import (
 
 type ProfileSkills struct {
 	gorm.Model
-	Title string `gorm:"type:varchar(255);not null" json:"title"`
+	UserID uint   `gorm:"not null;index" json:"user_id"`
+	Title  string `gorm:"type:varchar(255);not null" json:"title"`
 }
 
 func (*ProfileSkills) TableName() string {

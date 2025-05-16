@@ -3,10 +3,12 @@ from rest_framework.response import Response
 from django.core.cache import cache
 
 from base.responses import error_response, exception_response, success_response
-from .models import Profile,Education 
+from .models import Profile, Education, ProfileSkill, SkillItems
 from .serializers import (
     ProfileSerializer,
     ExperienceSerializer,
+    ProfileSkillSerializer,
+    SkillItemsSerializer
 )
 
 
@@ -32,7 +34,8 @@ class ProfileUpdateView(generics.UpdateAPIView):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
-        serializer = ProfileSerializer(instance, data=request.data, partial=True)
+        serializer = ProfileSerializer(
+            instance, data=request.data, partial=True)
         if not serializer.is_valid():
             return error_response(
                 message="خطا در اعتبارسنجی اطلاعات",
@@ -52,12 +55,10 @@ class ProfileUpdateView(generics.UpdateAPIView):
             return exception_response(e)
 
 
-
 class ProfileGetView(generics.RetrieveAPIView):
     throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "get"
-
 
     def get(self, request):
         try:
@@ -84,19 +85,14 @@ class ProfileGetView(generics.RetrieveAPIView):
         )
 
 
-
 class ExperienceViewSet(viewsets.ModelViewSet):
     serializer_class = ExperienceSerializer
     throttle_classes = [throttling.ScopedRateThrottle]
     permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "uploads"
 
-    def get_queryset(self):  # type:ignore
-        return Education.objects.get(user=self.request.user)
-
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = Education.objects.get(user=request.user)
         data = serializer.data
         return Response(data)
 
@@ -118,8 +114,7 @@ class ExperienceViewSet(viewsets.ModelViewSet):
         )
 
     def update(self, request):
-        instance = self.get_queryset()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = Education.objects.get(data=request.data)
         if serializer.is_valid():
             serializer.save()
             cache.delete("work-history")
@@ -140,3 +135,123 @@ class ExperienceViewSet(viewsets.ModelViewSet):
             {"message": "آیتم مورد نظر با موفقیت حذف شد"},
             status=status.HTTP_204_NO_CONTENT,
         )
+
+
+class ProfileSkillViewSet(viewsets.ModelViewSet):
+    serializer_class = ProfileSkillSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "uploads"
+
+    def create(self, request):
+        serializer = ProfileSkillSerializer(data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(user=self.request.user)
+            cache.delete("skills")
+            return success_response(
+                message="ایده با موفقیت دریافت شد.",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK,
+            )
+        return error_response(
+            message="انجام عملیات با خطا نواجه شده لطفا کمی بعد مجدد تلاش کنید",
+            errors=serializer.errors,
+            error_code="validation_error",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def update(self, request, *args, **kwargs):
+        try:
+            instance = ProfileSkill.objects.get(user=request.user)
+        except ProfileSkill.DoesNotExist:
+            return error_response(
+                message="مهارت مورد نظر پیدا نشد.",
+                error_code="profile_skill_not_found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if instance.user != request.user:
+            return error_response(
+                message="شما اجازه ویرایش این اطلاعات را ندارید.",
+                error_code="permission_denied",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = ProfileSkillSerializer(
+            instance, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return error_response(
+                message="خطا در اعتبارسنجی اطلاعات",
+                errors=serializer.errors,
+                error_code="validation_error",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            serializer.save(user=request.user)
+            return success_response(
+                message="تغییرات ایده با موفقیت ثبت شد.",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return exception_response(e)
+
+
+class SkillItemsViewSet(viewsets.ModelViewSet):
+    serializer_class = SkillItemsSerializer
+    throttle_classes = [throttling.ScopedRateThrottle]
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "uploads"
+
+    def create(self, request):
+        serializer = SkillItemsSerializer(data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(user=self.request.user)
+            cache.delete("skills")
+            return success_response(
+                message="ایده با موفقیت دریافت شد.",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK,
+            )
+        return error_response(
+            message="انجام عملیات با خطا نواجه شده لطفا کمی بعد مجدد تلاش کنید",
+            errors=serializer.errors,
+            error_code="validation_error",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def update(self, request, *args, **kwargs):
+        try:
+            instance = SkillItems.objects.get(user=request.user)
+        except SkillItems.DoesNotExist:
+            return error_response(
+                message="مهارت مورد نظر پیدا نشد.",
+                error_code="profile_skill_not_found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if instance.user != request.user:
+            return error_response(
+                message="شما اجازه ویرایش این اطلاعات را ندارید.",
+                error_code="permission_denied",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = SkillItemsSerializer(
+            instance, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return error_response(
+                message="خطا در اعتبارسنجی اطلاعات",
+                errors=serializer.errors,
+                error_code="validation_error",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            serializer.save(user=request.user)
+            return success_response(
+                message="تغییرات ایده با موفقیت ثبت شد.",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return exception_response(e)

@@ -79,10 +79,19 @@ func ConnectPostgres() *TrackedDB {
 func ConnectGORM() *gorm.DB {
 	sqlDB := ConnectPostgres()
 
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold: time.Second,
+			LogLevel:      logger.Silent,
+			Colorful:      true,
+		},
+	)
+
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: sqlDB.DB,
 	}), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
+		Logger: newLogger,
 	})
 	if err != nil {
 		log.Fatalf("❌ failed to initialize GORM: %v", err)

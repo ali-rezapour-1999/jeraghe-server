@@ -6,7 +6,7 @@ import (
 
 type Contact struct {
 	gorm.Model
-	UserID     uint   `gorm:"not null;index" json:"user_id"` // Foreign key to a User model
+	UserID     uint   `gorm:"not null;index" json:"user_id"`
 	SlugID     string `gorm:"type:varchar(100);unique;not null" json:"slug_id"`
 	IsActive   bool   `gorm:"default:true" json:"is_active"`
 	Platform   string `gorm:"type:varchar(50);not null" json:"platform"`
